@@ -7,8 +7,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 2rem;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -16,11 +16,18 @@
   z-index: 10;
 }
 
-.admin-header .header-left,
+.admin-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .admin-header .header-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .admin-header .header-title {
@@ -811,21 +818,13 @@
 
   .admin-header {
     padding: 0.85rem 1rem;
-    align-items: center;
-  }
-
-  .admin-header .header-left {
-    min-width: 0;
   }
 
   .admin-header .header-title {
-    display: block;
     font-size: 0.95rem;
-  }
-
-  .admin-header .header-right {
-    gap: 0.5rem;
-    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .admin-user {
@@ -947,6 +946,10 @@
     padding: 0.75rem 0.85rem;
   }
 
+  .admin-header .header-title {
+    font-size: 0.9rem;
+  }
+
   .admin-main {
     padding: 0.85rem 0.5rem 2rem;
   }
@@ -996,18 +999,17 @@
 /* ── Responsive: Very small phones (380px) ── */
 @media (max-width: 380px) {
   .admin-header {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
+    padding: 0.65rem 0.75rem;
   }
 
-  .admin-header .header-left {
-    justify-content: flex-start;
+  .admin-header .header-title {
+    font-size: 0.82rem;
   }
 
-  .admin-header .header-right {
-    width: 100%;
-    justify-content: space-between;
+  .header-badge {
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+    margin-left: 0.25rem;
   }
 
   .filter-actions {
