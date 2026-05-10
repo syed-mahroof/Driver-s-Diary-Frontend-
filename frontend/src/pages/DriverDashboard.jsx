@@ -352,8 +352,8 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   } else if (rides >= 1 && rides <= 3) {
     statusText = 'In Progress';
     progressTone = 'yellow';
-  } else if (rides === 4) {
-    statusText = 'Target Reached';
+  } else if (rides >= 4 && rides < 6) {
+    statusText = 'Good Performance';
     progressTone = 'light-green';
   } else {
     statusText = 'Excellent Performance';
@@ -517,7 +517,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
                 <div className="form-group">
                   <label>Company</label>
-                  <select name="company" value={form.company} onChange={handleFormChange}>
+                  <select name="company" value={form.company} onChange={handleFormChange} required>
                     <option value="">Select Company</option>
                     {companies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -554,7 +554,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
                   <div className="form-group">
                     <label>Time</label>
-                    <select name="ride_time" value={form.ride_time} onChange={handleFormChange}>
+                    <select name="ride_time" value={form.ride_time} onChange={handleFormChange} required>
                       <option value="">Select Time</option>
                       {(form.trip_type === 'P' ? pickupTimes : dropTimes).map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -571,6 +571,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     value={form.route}
                     onChange={handleFormChange}
                     placeholder="e.g. Kundanoor"
+                    required
                   />
                 </div>
 
@@ -598,6 +599,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       min="0"
                       step="0.1"
                       inputMode="decimal"
+                      required
                     />
                   </div>
 

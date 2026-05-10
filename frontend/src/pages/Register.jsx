@@ -21,15 +21,11 @@ export default function Register() {
     setLocalError('');
   };
 
-  const hasPhone = form.phone.trim().length > 0;
-  const hasEmail = form.email.trim().length > 0;
-  const contactValid = hasPhone || hasEmail;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!contactValid) {
-      setLocalError('Please provide at least a phone number or email address.');
+    if (!form.email.trim()) {
+      setLocalError('Email address is required.');
       return;
     }
 
@@ -80,49 +76,33 @@ export default function Register() {
             />
           </div>
 
-          <div className="contact-fields-group">
-            <div className="contact-hint">
-              <span className="hint-icon">ℹ</span>
-              At least one of phone or email is required
-            </div>
+          <div className="form-group">
+            <label htmlFor="email">
+              Email <span className="required-dot" title="Required">*</span>
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="Enter email address"
+              required
+              autoComplete="email"
+            />
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="phone">
-                Phone
-                {!hasEmail && <span className="required-dot" title="Required when email is empty">*</span>}
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={form.phone}
-                onChange={handleChange}
-                placeholder="Enter phone number"
-                autoComplete="tel"
-                className={hasPhone ? 'field-filled' : ''}
-              />
-            </div>
-
-            <div className="or-divider">
-              <span>or</span>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="email">
-                Email
-                {!hasPhone && <span className="required-dot" title="Required when phone is empty">*</span>}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Enter email address"
-                autoComplete="email"
-                className={hasEmail ? 'field-filled' : ''}
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="phone">Phone <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #888)', fontWeight: 400 }}>(optional)</span></label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="Enter phone number"
+              autoComplete="tel"
+            />
           </div>
 
           <div className="form-group">

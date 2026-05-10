@@ -7,17 +7,32 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['app-icon.svg'],
+      includeAssets: ['logo.png'],
       manifest: {
-        name: 'Ride Monitor',
-        short_name: 'Ride Monitor',
-        description: 'Ride Monitor driver manifest and attendance system',
+        name: "Driver's Diary",
+        short_name: "Driver's Diary",
+        description: "Driver's Diary by Head Green!",
         theme_color: '#1a1f2e',
         background_color: '#1a1f2e',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
-          { src: 'app-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+          {
+            src: 'logo.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'logo.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
         ],
         start_url: '/',
         scope: '/',

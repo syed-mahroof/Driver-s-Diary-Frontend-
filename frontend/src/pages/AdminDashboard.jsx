@@ -225,24 +225,91 @@ export default function AdminDashboard({ toggleTheme, theme }) {
         </div>
 
         {stats && (
-          <div className="overview-stats-card">
+          <div className="overview-stats-container">
             <div className="stats-header">
               <h3>Quick Overview</h3>
             </div>
-            <div className="stats-grid">
-              <MetricCard tone="blue" value={stats.total_rides} label="Total Rides" icon={<CarIcon />} />
-              <MetricCard tone="purple" value={stats.total_drivers} label="Active Drivers" icon={<UsersIcon />} />
-              <MetricCard tone="green" value={stats.total_full_days} label="Full Days" icon={<SunIcon />} />
-              <MetricCard tone="amber" value={stats.total_half_days} label="Half Days" icon={<CloudSunIcon />} />
-              <MetricCard
-                tone="teal"
-                value={`Rs ${Number(stats.total_advance_paid || 0).toLocaleString('en-IN')}`}
-                label="Advance Salary Paid"
-                subtitle={stats.advance_paid_drivers?.length > 0
-                  ? `(${stats.advance_paid_drivers.join(', ')})`
-                  : '(None)'}
-                icon={<WalletIcon />}
-              />
+            
+            <div className="stats-layers">
+              {/* Layer 1: Total Rides + Companies */}
+              <div className="stats-layer full-layer rides-layer">
+                <div className="rides-left-section">
+                  <div className="layer-icon-box blue">
+                    <CarIcon />
+                  </div>
+                  <div className="layer-value-group">
+                    <span className="layer-large-value blue">{stats.total_rides}</span>
+                    <span className="layer-label">Total Rides</span>
+                  </div>
+                </div>
+                
+                <div className="rides-right-section">
+                  <div className="company-chips-row">
+                    {(stats.company_breakdown || [])
+                      .sort((a, b) => b.count - a.count)
+                      .map(c => (
+                      <div className="company-stat-chip" key={c.name}>
+                        <span className="chip-name">{c.name}</span>
+                        <span className="chip-count">{c.count}</span>
+                        {c.name.toLowerCase() === 'zellis' && c.total_km > 0 && (
+                          <span className="chip-km">{c.total_km.toLocaleString('en-IN')} km</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Layer 2: Two Halves */}
+              <div className="stats-layer split-layer">
+                <div className="layer-half">
+                  <div className="layer-icon-box purple">
+                    <UsersIcon />
+                  </div>
+                  <div className="layer-content">
+                    <div className="layer-value purple">{stats.total_drivers}</div>
+                    <div className="layer-label">Active Drivers</div>
+                  </div>
+                </div>
+                <div className="layer-half">
+                  <div className="layer-icon-box yellow-bg">
+                    <SunIconSmall />
+                  </div>
+                  <div className="layer-content">
+                    <div className="layer-value yellow">{stats.drivers_target_achieved}/{stats.total_drivers}</div>
+                    <div className="layer-label">Drivers Target Achieved</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Layer 3: Advance Salary */}
+              <div className="stats-layer full-layer advance-layer">
+                <div className="layer-icon-box teal">
+                  <WalletIcon />
+                </div>
+                <div className="layer-content">
+                  <div className="layer-value teal">
+                    Rs {Number(stats.total_advance_paid || 0).toLocaleString('en-IN')}
+                  </div>
+                  <div className="layer-label">Advance Salary Paid</div>
+                  {stats.advance_paid_drivers?.length > 0 && (
+                    <div className="layer-subtitle">({stats.advance_paid_drivers.join(', ')})</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Layer 4: Charging Cost */}
+              <div className="stats-layer full-layer charging-layer">
+                <div className="layer-icon-box amber">
+                  <BoltIcon />
+                </div>
+                <div className="layer-content">
+                  <div className="layer-value amber">
+                    Rs {Number(stats.total_charging_cost || 0).toLocaleString('en-IN')}
+                  </div>
+                  <div className="layer-label">Total Charging Cost</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -713,20 +780,11 @@ function getYearStart() {
   return `${new Date().getFullYear()}-01-01`;
 }
 
-const CarIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.2-1.4.7l-1.5 2c-.3.4-.4.9-.4 1.4v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-);
-const UsersIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-);
 const SunIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
 );
-const CloudSunIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>
-);
-const WalletIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+const BoltIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-10z"/></svg>
 );
 const MoonIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -745,6 +803,18 @@ const CarIconSmall = () => (
 );
 const BellIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+);
+const SunIconSmall = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+);
+const CarIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.2-1.4.7l-1.5 2c-.3.4-.4.9-.4 1.4v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+);
+const UsersIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+);
+const WalletIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
 );
 
 function AdvanceRequestsPanel({ requests, onUpdate, onClose }) {

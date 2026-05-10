@@ -21,7 +21,6 @@ export default function Login() {
   const [fpError, setFpError] = useState('');
   const [fpMessage, setFpMessage] = useState('');
   const [fpContactType, setFpContactType] = useState('');
-  const [fpDevOTP, setFpDevOTP] = useState('');
   const otpRefs = useRef([]);
 
   const handleSubmit = async (e) => {
@@ -41,7 +40,6 @@ export default function Login() {
     setFpConfirmPassword('');
     setFpError('');
     setFpMessage('');
-    setFpDevOTP('');
   };
 
   const handleForgotClose = () => {
@@ -49,14 +47,17 @@ export default function Login() {
     setFpStep(1);
     setFpError('');
     setFpMessage('');
-    setFpDevOTP('');
   };
 
   // Step 1: Send OTP
   const handleSendOTP = async (e) => {
     e.preventDefault();
     if (!fpContact.trim()) {
-      setFpError('Please enter your phone number or email.');
+      setFpError('Please enter your email address.');
+      return;
+    }
+    if (!fpContact.includes('@')) {
+      setFpError('Please enter a valid email address.');
       return;
     }
     setFpLoading(true);
@@ -65,7 +66,6 @@ export default function Login() {
       const { data } = await authAPI.forgotPassword(fpContact.trim());
       setFpMessage(data.message);
       setFpContactType(data.contact_type);
-      if (data.dev_otp) setFpDevOTP(data.dev_otp);
       setFpStep(2);
       // Focus first OTP input after render
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
@@ -155,7 +155,6 @@ export default function Login() {
     try {
       const { data } = await authAPI.forgotPassword(fpContact.trim());
       setFpMessage(data.message);
-      if (data.dev_otp) setFpDevOTP(data.dev_otp);
       setFpError('');
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
@@ -176,7 +175,7 @@ export default function Login() {
             <p className="header-subtext">By <span>HeadGreen!</span></p>
             <h2 style={{ fontSize: '1.2rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>Reset Password</h2>
             <p>
-              {fpStep === 1 && 'Enter your phone number or email'}
+              {fpStep === 1 && 'Enter your registered email address'}
               {fpStep === 2 && 'Enter the OTP sent to you'}
               {fpStep === 3 && 'Create a new password'}
               {fpStep === 4 && 'Password reset complete'}
@@ -195,33 +194,19 @@ export default function Login() {
 
           {fpError && <div className="error-banner">{fpError}</div>}
           {fpMessage && fpStep === 2 && <div className="success-banner">{fpMessage}</div>}
-          {fpDevOTP && fpStep === 2 && (
-            <div className="dev-otp-banner" style={{
-              background: 'rgba(245,158,11,0.15)',
-              border: '1px solid rgba(245,158,11,0.4)',
-              color: '#fbbf24',
-              padding: '0.75rem',
-              borderRadius: '8px',
-              textAlign: 'center',
-              marginBottom: '1rem',
-              fontWeight: '600'
-            }}>
-              Your OTP is: <span style={{letterSpacing: '2px', fontSize: '1.2rem'}}>{fpDevOTP}</span>
-            </div>
-          )}
 
           {/* Step 1: Enter contact */}
           {fpStep === 1 && (
             <form onSubmit={handleSendOTP} className="login-form">
               <div className="form-group">
-                <label htmlFor="fp-contact">Phone Number or Email</label>
+                <label htmlFor="fp-contact">Email Address</label>
                 <input
                   id="fp-contact"
-                  type="text"
+                  type="email"
                   value={fpContact}
                   onChange={e => { setFpContact(e.target.value); setFpError(''); }}
-                  placeholder="e.g. 9876543210 or user@email.com"
-                  autoComplete="email tel"
+                  placeholder="Enter your registered email"
+                  autoComplete="email"
                   autoFocus
                 />
               </div>
