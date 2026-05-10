@@ -1,0 +1,467 @@
+.login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg-dark);
+  background-image: linear-gradient(160deg, rgba(16,185,129,0.08), transparent 38%);
+  overflow-y: auto;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem 2rem;
+  box-shadow: var(--shadow);
+}
+
+.register-card {
+  max-width: 520px;
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  letter-spacing: -0.5px;
+}
+
+.login-logo p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-group select option {
+  background: var(--bg-card);
+}
+
+.error-banner {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  color: #fca5a5;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.btn-login {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  min-height: 48px;
+}
+
+.btn-login:hover { opacity: 0.9; }
+.btn-login:active { transform: scale(0.98); }
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.login-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.auth-switch a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ================================
+   Forgot Password Link
+   ================================ */
+
+.forgot-password-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: right;
+  padding: 0;
+  margin-top: -0.5rem;
+  transition: opacity 0.2s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.forgot-password-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* ================================
+   Forgot Password Step Indicator
+   ================================ */
+
+.fp-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.fp-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.3s ease;
+}
+
+.fp-step-dot.active {
+  background: var(--accent);
+}
+
+.fp-step-dot.current {
+  width: 24px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+/* ================================
+   OTP Input
+   ================================ */
+
+.otp-input-group {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.otp-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--bg-input);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  caret-color: var(--accent);
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+}
+
+/* ================================
+   Success State
+   ================================ */
+
+.success-banner {
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  color: #6ee7b7;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+}
+
+.fp-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.fp-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.fp-success-text {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 500;
+}
+
+/* ================================
+   Back / Text Button
+   ================================ */
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  transition: color 0.2s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-text:hover {
+  color: var(--accent);
+}
+
+.btn-text:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ================================
+   Conditional Phone/Email Styles
+   ================================ */
+
+.contact-fields-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(16,185,129,0.03);
+}
+
+.contact-hint,
+.contact-hint-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.contact-hint-inline {
+  padding: 0.5rem 0.75rem;
+  background: rgba(16,185,129,0.06);
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(16,185,129,0.2);
+}
+
+.hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(16,185,129,0.15);
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.required-dot {
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: 0.2rem;
+}
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.field-filled {
+  border-color: rgba(16,185,129,0.4) !important;
+}
+
+/* ── Responsive: Tablets ── */
+@media (max-width: 768px) {
+  .login-page {
+    padding: 1.25rem;
+  }
+
+  .register-card {
+    max-width: 100%;
+  }
+}
+
+/* ── Responsive: Phones ── */
+@media (max-width: 520px) {
+  .login-page {
+    align-items: center;
+    padding: 1.25rem 1rem;
+  }
+
+  .login-card {
+    padding: 1.5rem 1rem;
+    border-radius: var(--radius-lg);
+    margin: auto 0;
+  }
+
+  .login-logo h1 {
+    font-size: 1.45rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .otp-input {
+    width: 42px;
+    height: 50px;
+    font-size: 1.3rem;
+  }
+
+  .otp-input-group {
+    gap: 0.35rem;
+  }
+
+  .contact-fields-group {
+    padding: 0.75rem;
+  }
+}
+
+/* ── Responsive: Very small phones (iPhone SE, Galaxy S5, etc.) ── */
+@media (max-width: 360px) {
+  .login-page {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .login-card {
+    padding: 1.25rem 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  .login-logo h1 {
+    font-size: 1.3rem;
+  }
+
+  .login-logo p {
+    font-size: 0.78rem;
+  }
+
+  .btn-login {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .otp-input {
+    width: 36px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .otp-input-group {
+    gap: 0.25rem;
+  }
+
+  .auth-switch {
+    font-size: 0.78rem;
+  }
+}
