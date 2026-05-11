@@ -32,6 +32,7 @@ export function useSync() {
         notes: r.notes,
         total_km: r.total_km,
         vehicle_number: r.vehicle_number,
+        requested_seater: r.requested_seater,
       }));
 
       const { data } = await driverAPI.syncRides(payload);

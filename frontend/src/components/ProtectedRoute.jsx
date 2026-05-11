@@ -12,5 +12,9 @@ export function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/driver" replace />;
   }
 
+  if (!adminOnly && user.isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
   return children;
 }

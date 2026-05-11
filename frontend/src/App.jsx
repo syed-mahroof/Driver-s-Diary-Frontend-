@@ -7,10 +7,12 @@ import Register from './pages/Register';
 import DriverDashboard from './pages/DriverDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import { InstallPrompt } from './components/InstallPrompt';
+import SplashScreen from './components/SplashScreen';
 import './styles/global.css';
 
 export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -23,6 +25,7 @@ export default function App() {
 
   return (
     <AuthProvider>
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <BrowserRouter>
         <InstallPrompt />
         <Routes>

@@ -36,6 +36,7 @@ export async function savePendingRide(ride) {
     notes: ride.notes || '',
     total_km: ride.total_km || null,
     vehicle_number: ride.vehicle_number || '',
+    requested_seater: ride.requested_seater || 4,
     synced: false,
     created_at: new Date().toISOString(),
   };

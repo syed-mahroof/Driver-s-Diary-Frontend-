@@ -7,6 +7,7 @@ import { savePendingRide } from '../utils/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import '../styles/Driver.css';
+import logoProfessional from '../assets/logo-professional.png';
 
 const TODAY = new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local time
 
@@ -47,6 +48,8 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const navigate = useNavigate();
 
   const [dashboard, setDashboard] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [profileError, setProfileError] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -55,7 +58,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const [submittingCharge, setSubmittingCharge] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [vehicles, setVehicles] = useState([]);
   const [seaterType, setSeaterType] = useState(4);
   const [seaterTypeCharge, setSeaterTypeCharge] = useState(4);
   const [showDefaultCarModal, setShowDefaultCarModal] = useState(false);
@@ -86,8 +88,13 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     try {
       const { data } = await driverAPI.getDashboard();
       setDashboard(data);
+      setProfileError(false);
     } catch (err) {
-      console.error('Dashboard fetch failed', err);
+      if (err.response?.status === 404) {
+        setProfileError(true);
+      } else {
+        console.error('Dashboard fetch failed', err);
+      }
     } finally {
       setLoading(false);
     }
@@ -162,6 +169,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           notes: form.notes,
           total_km: form.total_km || null,
           vehicle_number: form.vehicle_number,
+          requested_seater: seaterType,
         });
         setSuccessMsg('Ride added successfully!');
         fetchDashboard();
@@ -179,6 +187,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           notes: form.notes,
           total_km: form.total_km || null,
           vehicle_number: form.vehicle_number,
+          requested_seater: seaterType,
         });
         await refreshPendingCount();
         setSuccessMsg('Ride saved offline. Will sync when online.');
@@ -252,24 +261,80 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     navigate('/login');
   };
 
+  const getBase64ImageFromURL = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.setAttribute("crossOrigin", "anonymous");
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL("image/png");
+        resolve({ dataURL, width: img.width, height: img.height });
+      };
+      img.onerror = (error) => {
+        reject(error);
+      };
+      img.src = url;
+    });
+  };
+
   const handleExportReport = async (period) => {
     try {
       const { data: report } = await driverAPI.getReportData(period);
       const doc = new jsPDF();
       
+      // Load Logo
+      let logoData = null;
+      try {
+        logoData = await getBase64ImageFromURL(logoProfessional);
+      } catch (err) {
+        console.error('Failed to load logo for PDF', err);
+      }
+
       // Header Section
-      doc.setFontSize(20);
-      doc.setTextColor(31, 58, 95);
-      doc.text("Driver's Diary", 14, 22);
+      let contentStartX = 14;
+      if (logoData) {
+        const maxWidth = 30;
+        const maxHeight = 20;
+        let finalWidth = maxWidth;
+        let finalHeight = (logoData.height * maxWidth) / logoData.width;
+
+        if (finalHeight > maxHeight) {
+          finalHeight = maxHeight;
+          finalWidth = (logoData.width * maxHeight) / logoData.height;
+        }
+
+        doc.addImage(logoData.dataURL, 'PNG', 14, 8, finalWidth, finalHeight);
+        contentStartX = 14 + finalWidth + 6; // 6mm gap
+      }
+
+      // Report Title & Tagline
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(31, 58, 95); // Deep Blue
+      doc.text("Driver's Diary", contentStartX, 22);
       
-      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`Driver Report: ${report.driver_name}`, 14, 32);
-      doc.text(`Period: ${period === 'month' ? 'Monthly' : 'Yearly'} Report`, 14, 38);
-      doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 14, 44);
+      doc.text("Premium Cab Services by HeadGreen!", contentStartX, 28);
+
+      // Report Info (Right Aligned)
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.setFontSize(10);
+      doc.setTextColor(31, 58, 95);
+      doc.text(`Driver: ${report.driver_name}`, pageWidth - 14, 18, { align: 'right' });
+      doc.text(`${period === 'month' ? 'Monthly' : 'Yearly'} Report`, pageWidth - 14, 24, { align: 'right' });
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, pageWidth - 14, 30, { align: 'right' });
+
+      // Horizontal Line
+      doc.setDrawColor(200);
+      doc.line(14, 38, pageWidth - 14, 38);
 
       const tableData = [];
-      let grandTotalKm = 0;
       let totalRides = 0;
 
       report.data.forEach(day => {
@@ -281,14 +346,11 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             '-',
             '-',
             'No rides recorded',
-            '-',
             '-'
           ]);
         } else {
           day.rides.forEach((ride, i) => {
             totalRides++;
-            const km = parseFloat(ride.total_km) || 0;
-            grandTotalKm += km;
             
             tableData.push([
               new Date(day.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
@@ -297,7 +359,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
               ride.trip_type,
               ride.ride_time ? formatTime(ride.ride_time) : '',
               ride.route || '',
-              ride.total_km || '',
               ride.vehicle_number || ''
             ]);
           });
@@ -305,31 +366,44 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       });
 
       autoTable(doc, {
-        startY: 52,
-        head: [['Date', 'No', 'Client', 'P/D', 'Time', 'Route', 'Total km', 'Vehicle']],
+        startY: 45,
+        head: [['Date', 'No', 'Client', 'P/D', 'Time', 'Route', 'Vehicle']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: [31, 58, 95], fontStyle: 'bold' },
-        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { 
+          fillColor: [31, 58, 95], 
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        styles: { 
+          fontSize: 9, 
+          cellPadding: 3,
+          valign: 'middle'
+        },
         columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 10 },
-          3: { cellWidth: 12 },
-          4: { cellWidth: 22 },
-          6: { cellWidth: 18 },
-          7: { cellWidth: 18 }
+          0: { cellWidth: 20, halign: 'center' },
+          1: { cellWidth: 10, halign: 'center' },
+          3: { cellWidth: 12, halign: 'center' },
+          4: { cellWidth: 22, halign: 'center' },
+          6: { cellWidth: 25, halign: 'center' }
         }
       });
 
       // Summary Footer
-      const finalY = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
+      const finalY = doc.lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
       doc.setTextColor(31, 58, 95);
-      doc.text(`Summary:`, 14, finalY);
-      doc.setFontSize(10);
+      doc.text(`Report Summary`, 14, finalY);
+      
+      doc.setFontSize(11);
       doc.setTextColor(0);
-      doc.text(`Total Rides: ${totalRides}`, 14, finalY + 8);
-      doc.text(`Total Distance: ${grandTotalKm.toFixed(1)} km`, 14, finalY + 14);
+      doc.text(`Total Rides: ${totalRides}`, 14, finalY + 10);
+      
+      // Professional Footer
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text("© HeadGreen! - Confidential Report", pageWidth / 2, pageHeight - 10, { align: 'center' });
 
       doc.save(`${report.driver_name.replace(/\s+/g, '_')}_${period}_Report.pdf`);
       setMenuOpen(false);
@@ -424,10 +498,23 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       </header>
 
       <main className="driver-main">
-        {/* Welcome */}
-        <div className="welcome-section">
-          <div className="welcome-header">
-            <h2>Good {getGreeting()}, {dashboard?.driver_name?.split(' ')[0] || user?.username}!</h2>
+        {profileError ? (
+          <div className="error-container">
+            <div className="error-card">
+              <div className="error-icon">🚫</div>
+              <h2>Driver Profile Required</h2>
+              <p>We couldn't find a driver profile for your account. This dashboard is only for registered drivers.</p>
+              <div className="error-actions">
+                <button className="btn-submit" onClick={handleLogout}>Logout & Switch Account</button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Welcome */}
+            <div className="welcome-section">
+              <div className="welcome-header">
+                <h2>Good {getGreeting()}, {dashboard?.driver_name?.split(' ')[0] || user?.username}!</h2>
             <span className={`status-dot ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'} />
           </div>
           <p className="welcome-date">{formatDate(TODAY)}</p>
@@ -639,9 +726,11 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     >
                       <option value="">Select Vehicle</option>
                       {vehicles
-                        .filter(v => v.seater === seaterType)
+                        .filter(v => seaterType === 4 ? true : v.seater === seaterType)
                         .map(v => (
-                          <option key={v.id} value={v.number}>{v.number}</option>
+                          <option key={v.id} value={v.number}>
+                            {v.number} {v.seater === 6 && seaterType === 4 ? '(6 Seater)' : ''}
+                          </option>
                         ))
                       }
                     </select>
@@ -697,9 +786,13 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     <option value="">Select App</option>
                     <option value="Tata Power">Tata Power</option>
                     <option value="Zeon Charging">Zeon Charging</option>
-                    <option value="ChargeZone">ChargeZone</option>
+                    <option value="Chargemod">Chargemod</option>
                     <option value="Statiq">Statiq</option>
-                    <option value="PlugNgo">PlugNgo</option>
+                    <option value="Thunder+">Thunder+</option>
+                    <option value="GoEc">GoEc</option>
+                    <option value="ANERTEV">ANERTEV</option>
+                    <option value="ESYGO">ESYGO</option>
+                    <option value="KSEB">KSEB-KEMApp</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
@@ -751,9 +844,11 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     >
                       <option value="">Select Vehicle</option>
                       {vehicles
-                        .filter(v => v.seater === seaterTypeCharge)
+                        .filter(v => seaterTypeCharge === 4 ? true : v.seater === seaterTypeCharge)
                         .map(v => (
-                          <option key={v.id} value={v.number}>{v.number}</option>
+                          <option key={v.id} value={v.number}>
+                            {v.number} {v.seater === 6 && seaterTypeCharge === 4 ? '(6 Seater)' : ''}
+                          </option>
                         ))
                       }
                     </select>
@@ -832,7 +927,14 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       {ride.ride_time && <span><ClockIcon /> {formatTime(ride.ride_time)}</span>}
                       {ride.trip_type && <span>{ride.trip_type}</span>}
                       {ride.total_km && <span><RulerIcon /> {Number(ride.total_km).toLocaleString('en-IN')} km</span>}
-                      {ride.vehicle_number && <span><CarIconSmall /> {ride.vehicle_number}</span>}
+                      {ride.vehicle_number && (
+                        <span>
+                          <CarIconSmall /> {ride.vehicle_number}
+                          {ride.requested_seater === 4 && vehicles.find(v => v.number === ride.vehicle_number)?.seater === 6 && (
+                            <span className="mixed-usage-badge" title="6 Seater used as 4">6s as 4</span>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -867,6 +969,8 @@ export default function DriverDashboard({ toggleTheme, theme }) {
               setTimeout(() => setSuccessMsg(''), 4000);
             }}
           />
+        )}
+          </>
         )}
       </main>
     </div>
@@ -994,9 +1098,11 @@ function DefaultCarModal({ onClose, onSuccess, vehicles, currentSeater, currentN
             >
               <option value="">Select Vehicle</option>
               {vehicles
-                .filter(v => v.seater === seater)
+                .filter(v => seater === 4 ? true : v.seater === seater)
                 .map(v => (
-                  <option key={v.id} value={v.number}>{v.number}</option>
+                  <option key={v.id} value={v.number}>
+                    {v.number} {v.seater === 6 && seater === 4 ? '(6 Seater)' : ''}
+                  </option>
                 ))
               }
             </select>
