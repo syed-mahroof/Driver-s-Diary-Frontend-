@@ -26,7 +26,9 @@ export const SplashScreen = ({ onFinish }) => {
   return (
     <div className={`splash-screen ${isFadingOut ? 'fade-out' : ''}`}>
       <div className="splash-logo-container">
-        <img src="/logo.png" alt="Logo" className="splash-main-logo" />
+        <div className="splash-logo-wrapper">
+          <img src="/logo.png" alt="Logo" className="splash-main-logo" />
+        </div>
       </div>
       
       <div className="splash-branding">

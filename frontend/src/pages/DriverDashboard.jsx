@@ -59,7 +59,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [seaterType, setSeaterType] = useState(4);
-  const [seaterTypeCharge, setSeaterTypeCharge] = useState(4);
   const [showDefaultCarModal, setShowDefaultCarModal] = useState(false);
   const [showAdvanceSalaryModal, setShowAdvanceSalaryModal] = useState(false);
 
@@ -132,7 +131,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
   useEffect(() => {
     if (showChargeForm && dashboard) {
-      setSeaterTypeCharge(dashboard.default_seater || 4);
       setChargeForm(prev => ({
         ...prev,
         vehicle_number: dashboard.default_vehicle_number || ''
@@ -797,31 +795,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Vehicle Seater</label>
-                  <div className="trip-type-toggle">
-                    <label className={`toggle-option ${seaterTypeCharge === 4 ? 'active' : ''}`}>
-                      <input
-                        type="radio"
-                        name="seaterTypeCharge"
-                        value={4}
-                        checked={seaterTypeCharge === 4}
-                        onChange={() => { setSeaterTypeCharge(4); setChargeForm(f => ({ ...f, vehicle_number: '' })); }}
-                      />
-                      <span>4 Seater</span>
-                    </label>
-                    <label className={`toggle-option ${seaterTypeCharge === 6 ? 'active' : ''}`}>
-                      <input
-                        type="radio"
-                        name="seaterTypeCharge"
-                        value={6}
-                        checked={seaterTypeCharge === 6}
-                        onChange={() => { setSeaterTypeCharge(6); setChargeForm(f => ({ ...f, vehicle_number: '' })); }}
-                      />
-                      <span>6 Seater</span>
-                    </label>
-                  </div>
-                </div>
 
                 <div className="form-row compact">
                   <div className="form-group">
@@ -843,14 +816,11 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       required
                     >
                       <option value="">Select Vehicle</option>
-                      {vehicles
-                        .filter(v => seaterTypeCharge === 4 ? true : v.seater === seaterTypeCharge)
-                        .map(v => (
-                          <option key={v.id} value={v.number}>
-                            {v.number} {v.seater === 6 && seaterTypeCharge === 4 ? '(6 Seater)' : ''}
-                          </option>
-                        ))
-                      }
+                      {vehicles.map(v => (
+                        <option key={v.id} value={v.number}>
+                          {v.number} ({v.seater} Seater)
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

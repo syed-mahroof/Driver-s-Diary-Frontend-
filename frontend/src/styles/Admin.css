@@ -87,9 +87,9 @@
 }
 
 .filter-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
-  align-items: center;
   grid-column: span 2;
 }
 
@@ -140,18 +140,39 @@
 .quick-ranges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.85rem;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
 }
 
 .quick-ranges button {
-  font-size: 0.75rem;
-  padding: 0.4rem 0.75rem;
-  background: transparent;
+  font-size: 0.62rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 999px; /* Oval/Pill shape */
   color: var(--text-secondary);
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.quick-ranges button:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--accent-blue);
+}
+
+.quick-ranges button.active {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
 }
 
 .overview-stats-container {
@@ -1432,5 +1453,43 @@
   }
   .advance-actions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 1024px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-main {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .filter-panel {
+    padding: 1rem;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .filter-actions {
+    grid-column: span 1;
+    margin-top: 0.25rem;
+  }
+
+  .quick-ranges {
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .quick-ranges button {
+    flex: 0 1 auto; /* Don't force them to 50% width */
+    text-align: center;
+    padding: 0.35rem 0.75rem; /* Slightly larger for touch but still small */
+    font-size: 0.62rem;
   }
 }

@@ -1,13 +1,52 @@
 .splash-screen {
   position: fixed;
   inset: 0;
-  background: var(--bg-dark);
+  background: radial-gradient(circle at center, #1a1f2e 0%, #0f1117 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  transition: opacity 0.5s ease, visibility 0.5s;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+  overflow: hidden;
+  animation: splashFadeIn 0.5s ease-out both;
+}
+
+@keyframes splashFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Background Blobs */
+.splash-screen::before,
+.splash-screen::after {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  z-index: -1;
+  animation: blobFloat 10s infinite alternate ease-in-out;
+}
+
+.splash-screen::before {
+  background: var(--accent);
+  top: -100px;
+  right: -50px;
+}
+
+.splash-screen::after {
+  background: var(--accent-purple);
+  bottom: -50px;
+  left: -50px;
+  animation-delay: -5s;
+}
+
+@keyframes blobFloat {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(30px, 40px) scale(1.1); }
 }
 
 .splash-screen.fade-out {
@@ -21,68 +60,87 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.splash-logo-wrapper {
+  position: relative;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 48px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: logoWrapperEntrance 1.2s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
 .splash-main-logo {
-  width: 180px;
-  height: 180px;
+  width: 160px;
+  height: 160px;
   object-fit: cover;
-  border-radius: 40px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
-  animation: logoEntrance 1.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 36px;
+  display: block;
+  animation: logoScale 4s infinite alternate ease-in-out;
 }
 
-@keyframes logoEntrance {
+@keyframes logoWrapperEntrance {
   from {
     opacity: 0;
-    transform: scale(0.5);
+    transform: scale(0.8) translateY(30px);
+    filter: blur(10px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
+    filter: blur(0);
   }
 }
 
+@keyframes logoScale {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
 .splash-branding {
-  padding-bottom: calc(3rem + var(--safe-bottom));
+  padding-bottom: calc(4rem + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  animation: brandingEntrance 1s ease 0.6s both;
+  gap: 8px;
+  animation: brandingEntrance 1s ease 0.8s both;
 }
 
 .splash-from {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: lowercase;
-  opacity: 0.8;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.6;
 }
 
 .splash-brand-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 2px;
+  gap: 12px;
 }
 
 .splash-small-logo {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
 .splash-brand-name {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: -0.01em;
+  font-family: var(--font-brand);
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
   color: #fff;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  background: linear-gradient(to bottom, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @keyframes brandingEntrance {
@@ -96,9 +154,18 @@
   }
 }
 
-/* Light mode adjustments if needed */
+[data-theme="light"] .splash-screen {
+  background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+}
+
 [data-theme="light"] .splash-brand-name {
-  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  background: linear-gradient(to bottom, #1e293b, #475569);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+[data-theme="light"] .splash-logo-wrapper {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+

@@ -34,7 +34,16 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   };
 
   const today = new Date().toLocaleDateString('en-CA');
+  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA');
   const firstOfMonth = today.slice(0, 8) + '01';
+
+  const getWeekStart = () => {
+    const d = new Date();
+    const day = d.getDay(); // 0: Sun, 1: Mon, ...
+    const diff = d.getDate() - (day === 0 ? 6 : day - 1); // Monday as start
+    return new Date(d.setDate(diff)).toLocaleDateString('en-CA');
+  };
+  const weekStart = getWeekStart();
 
   const [filters, setFilters] = useState({
     start_date: firstOfMonth,
@@ -42,6 +51,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
     driver_id: '',
     company_id: '',
   });
+
+  const isActive = (start, end) => filters.start_date === start && filters.end_date === end;
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -218,9 +229,36 @@ export default function AdminDashboard({ toggleTheme, theme }) {
           </div>
 
           <div className="quick-ranges">
-            <button onClick={() => setFilters(f => ({ ...f, start_date: today, end_date: today }))}>Today</button>
-            <button onClick={() => setFilters(f => ({ ...f, start_date: firstOfMonth, end_date: today }))}>This Month</button>
-            <button onClick={() => setFilters(f => ({ ...f, start_date: getYearStart(), end_date: today }))}>This Year</button>
+            <button 
+              className={isActive(today, today) ? 'active' : ''} 
+              onClick={() => setFilters(f => ({ ...f, start_date: today, end_date: today }))}
+            >
+              Today
+            </button>
+            <button 
+              className={isActive(yesterday, yesterday) ? 'active' : ''} 
+              onClick={() => setFilters(f => ({ ...f, start_date: yesterday, end_date: yesterday }))}
+            >
+              Yesterday
+            </button>
+            <button 
+              className={isActive(weekStart, today) ? 'active' : ''} 
+              onClick={() => setFilters(f => ({ ...f, start_date: weekStart, end_date: today }))}
+            >
+              This Week
+            </button>
+            <button 
+              className={isActive(firstOfMonth, today) ? 'active' : ''} 
+              onClick={() => setFilters(f => ({ ...f, start_date: firstOfMonth, end_date: today }))}
+            >
+              This Month
+            </button>
+            <button 
+              className={isActive(getYearStart(), today) ? 'active' : ''} 
+              onClick={() => setFilters(f => ({ ...f, start_date: getYearStart(), end_date: today }))}
+            >
+              This Year
+            </button>
           </div>
         </div>
 
