@@ -46,7 +46,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const weekStart = getWeekStart();
 
   const [filters, setFilters] = useState({
-    start_date: firstOfMonth,
+    start_date: today,
     end_date: today,
     driver_id: '',
     company_id: '',
