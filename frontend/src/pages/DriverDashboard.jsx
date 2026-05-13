@@ -61,6 +61,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const [seaterType, setSeaterType] = useState(4);
   const [showDefaultCarModal, setShowDefaultCarModal] = useState(false);
   const [showAdvanceSalaryModal, setShowAdvanceSalaryModal] = useState(false);
+  const [editingRide, setEditingRide] = useState(null);
 
   const [form, setForm] = useState({
     date: TODAY,
@@ -155,21 +156,36 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
     try {
       if (isOnline) {
-        await driverAPI.createRide({
-          local_id,
-          company: form.company || null,
-          date: form.date,
-          ride_time: form.ride_time || null,
-          trip_type: form.trip_type,
-          route: form.route,
-          pickup: '',
-          drop: '',
-          notes: form.notes,
-          total_km: form.total_km || null,
-          vehicle_number: form.vehicle_number,
-          requested_seater: seaterType,
-        });
-        setSuccessMsg('Ride added successfully!');
+        if (editingRide) {
+          await driverAPI.updateRide(editingRide.id, {
+            company: form.company || null,
+            date: form.date,
+            ride_time: form.ride_time || null,
+            trip_type: form.trip_type,
+            route: form.route,
+            notes: form.notes,
+            total_km: form.total_km || null,
+            vehicle_number: form.vehicle_number,
+            requested_seater: seaterType,
+          });
+          setSuccessMsg('Ride updated successfully!');
+        } else {
+          await driverAPI.createRide({
+            local_id,
+            company: form.company || null,
+            date: form.date,
+            ride_time: form.ride_time || null,
+            trip_type: form.trip_type,
+            route: form.route,
+            pickup: '',
+            drop: '',
+            notes: form.notes,
+            total_km: form.total_km || null,
+            vehicle_number: form.vehicle_number,
+            requested_seater: seaterType,
+          });
+          setSuccessMsg('Ride added successfully!');
+        }
         fetchDashboard();
       } else {
         await savePendingRide({
@@ -207,6 +223,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       });
       if (dashboard) setSeaterType(dashboard.default_seater || 4);
       setShowForm(false);
+      setEditingRide(null);
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       alert('Failed to save ride: ' + (err.response?.data?.detail || err.message));
@@ -583,8 +600,22 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           <div className="modal-overlay" onClick={() => setShowForm(false)}>
             <div className="modal-card" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>Add New Ride</h3>
-                <button className="modal-close" onClick={() => setShowForm(false)}>x</button>
+                <h3>{editingRide ? 'Edit Ride' : 'Add New Ride'}</h3>
+                <button className="modal-close" onClick={() => {
+                  setShowForm(false);
+                  setEditingRide(null);
+                  setForm({
+                    date: TODAY,
+                    company: '',
+                    ride_time: '',
+                    trip_type: 'P',
+                    route: '',
+                    notes: '',
+                    total_km: '',
+                    vehicle_number: dashboard?.default_vehicle_number || '',
+                  });
+                  setSeaterType(dashboard?.default_seater || 4);
+                }}>x</button>
               </div>
 
               <form onSubmit={handleAddRide} className="ride-form">
@@ -739,7 +770,21 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                   <button
                     type="button"
                     className="btn-cancel"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingRide(null);
+                      setForm({
+                        date: TODAY,
+                        company: '',
+                        ride_time: '',
+                        trip_type: 'P',
+                        route: '',
+                        notes: '',
+                        total_km: '',
+                        vehicle_number: dashboard?.default_vehicle_number || '',
+                      });
+                      setSeaterType(dashboard?.default_seater || 4);
+                    }}
                   >
                     Cancel
                   </button>
@@ -748,7 +793,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     className="btn-submit"
                     disabled={submitting}
                   >
-                    {submitting ? 'Saving...' : isOnline ? 'Save Ride' : 'Save Offline'}
+                    {submitting ? 'Saving...' : editingRide ? 'Update Ride' : isOnline ? 'Save Ride' : 'Save Offline'}
                   </button>
                 </div>
               </form>
@@ -907,6 +952,27 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       )}
                     </div>
                   </div>
+                  <button 
+                    className="edit-ride-btn" 
+                    onClick={() => {
+                      setEditingRide(ride);
+                      setForm({
+                        date: ride.date,
+                        company: ride.company || '',
+                        ride_time: ride.ride_time || '',
+                        trip_type: ride.trip_type,
+                        route: ride.route || '',
+                        notes: ride.notes || '',
+                        total_km: ride.total_km || '',
+                        vehicle_number: ride.vehicle_number || '',
+                      });
+                      setSeaterType(ride.requested_seater || 4);
+                      setShowForm(true);
+                    }}
+                    title="Edit Ride"
+                  >
+                    <EditIcon />
+                  </button>
                 </div>
               ))}
             </div>
@@ -1002,6 +1068,9 @@ const ZapIcon = () => (
 );
 const PlusIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+);
+const EditIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
 );
 
 function DefaultCarModal({ onClose, onSuccess, vehicles, currentSeater, currentNumber }) {

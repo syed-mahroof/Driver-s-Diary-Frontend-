@@ -58,6 +58,7 @@ export const authAPI = {
 export const driverAPI = {
   getDashboard: () => api.get('/driver/dashboard/'),
   createRide: (data) => api.post('/rides/', data),
+  updateRide: (id, data) => api.patch(`/rides/${id}/update/`, data),
   createCharge: (data) => api.post('/driver/charge/', data),
   syncRides: (rides) => api.post('/sync-rides/', { rides }),
   getCompanies: () => api.get('/companies/'),

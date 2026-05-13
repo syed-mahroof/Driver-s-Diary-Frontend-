@@ -746,3 +746,32 @@
   background: #d97706;
   color: #fff;
 }
+
+.edit-ride-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.edit-ride-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent);
+  transform: scale(1.1);
+}
+
+[data-theme="light"] .edit-ride-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.edit-ride-btn svg {
+  width: 18px;
+  height: 18px;
+}

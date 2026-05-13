@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: "Driver's Diary",
         short_name: "Driver's Diary",
-        description: "Driver's Diary by Head Green!",
+        description: "Driver's Diary by HeadGreen!",
         theme_color: '#1a1f2e',
         background_color: '#1a1f2e',
         display: 'standalone',
