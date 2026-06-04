@@ -19,6 +19,7 @@ const pickupTimes = [
   { value: '11:00', label: '11:00 am' },
   { value: '13:00', label: '1:00 pm' },
   { value: '13:30', label: '1:30 pm' },
+  { value: '14:00', label: '2:00 pm' },
   { value: '16:30', label: '4:30 pm' },
   { value: '18:00', label: '6:00 pm' },
   { value: '18:30', label: '6:30 pm' },
@@ -26,15 +27,20 @@ const pickupTimes = [
 ];
 
 const dropTimes = [
+  { value: '13:30', label: '1:30 pm' },
   { value: '14:30', label: '2:30 pm' },
   { value: '15:30', label: '3:30 pm' },
+  { value: '17:45', label: '5:45 pm' },
   { value: '18:00', label: '6:00 pm' },
   { value: '18:30', label: '6:30 pm' },
   { value: '19:30', label: '7:30 pm' },
   { value: '20:30', label: '8:30 pm' },
   { value: '21:00', label: '9:00 pm' },
+  { value: '21:30', label: '9:30 pm' },
   { value: '22:00', label: '10:00 pm' },
   { value: '22:30', label: '10:30 pm' },
+  { value: '23:00', label: '11:00 pm' },
+  { value: '23:30', label: '11:30 pm' },
   { value: '00:00', label: '12:00 am' },
   { value: '00:30', label: '12:30 am' },
   { value: '02:00', label: '2:00 am' },
@@ -141,11 +147,69 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     }
   }, [showChargeForm, dashboard]);
 
+  const getFilteredTimesForState = (stateObj) => {
+    if (!stateObj.company) {
+      return stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+    }
+
+    const selectedCompanyObj = companies.find(c => String(c.id) === String(stateObj.company));
+    if (!selectedCompanyObj) {
+      return stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+    }
+
+    const companyName = selectedCompanyObj.name.toLowerCase().trim();
+
+    if (companyName.includes('ey')) {
+      const allowed = stateObj.trip_type === 'P'
+        ? ['06:00', '08:30', '09:00', '10:00', '11:00', '16:30', '18:00', '21:00']
+        : ['13:30', '14:30', '15:30', '17:45', '18:00', '19:30', '20:30', '22:00', '23:00', '00:00', '02:00', '03:30'];
+      const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+      return source.filter(t => allowed.includes(t.value));
+    }
+    
+    if (companyName.includes('wipro')) {
+      const allowed = stateObj.trip_type === 'P'
+        ? ['06:00']
+        : ['19:30', '20:30', '21:30', '23:30', '02:00', '03:00'];
+      const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+      return source.filter(t => allowed.includes(t.value));
+    }
+
+    if (companyName.includes('zellis')) {
+      const allowed = stateObj.trip_type === 'P'
+        ? ['13:00', '13:30', '14:00']
+        : ['22:00', '22:30', '23:00'];
+      const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+      return source.filter(t => allowed.includes(t.value));
+    }
+
+    if (companyName.includes('orion')) {
+      const allowed = stateObj.trip_type === 'P'
+        ? []
+        : ['18:00', '18:30', '19:30', '20:30', '21:00'];
+      const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+      return source.filter(t => allowed.includes(t.value));
+    }
+
+    if (companyName.includes('servesys')) {
+      const allowed = stateObj.trip_type === 'P'
+        ? ['18:00', '18:30']
+        : ['03:00', '15:30'];
+      const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+      return source.filter(t => allowed.includes(t.value));
+    }
+
+    return stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+  };
+
   const handleFormChange = (e) => {
     setForm(prev => {
       const updated = { ...prev, [e.target.name]: e.target.value };
-      if (e.target.name === 'trip_type') {
-        updated.ride_time = '';
+      if (e.target.name === 'trip_type' || e.target.name === 'company') {
+        const filtered = getFilteredTimesForState(updated);
+        if (updated.ride_time && !filtered.some(t => t.value === updated.ride_time)) {
+          updated.ride_time = '';
+        }
       }
       return updated;
     });
@@ -675,7 +739,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     <label>Time</label>
                     <select name="ride_time" value={form.ride_time} onChange={handleFormChange} required>
                       <option value="">Select Time</option>
-                      {(form.trip_type === 'P' ? pickupTimes : dropTimes).map(t => (
+                      {getFilteredTimesForState(form).map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
                       ))}
                     </select>
