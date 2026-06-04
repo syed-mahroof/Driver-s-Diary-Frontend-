@@ -1493,3 +1493,182 @@
     font-size: 0.62rem;
   }
 }
+
+/* ── Ride Notes in Admin ── */
+.ride-note-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.note-dot-admin {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 999px;
+  background: var(--accent-green);
+}
+
+[data-theme="light"] .ride-note-admin {
+  color: var(--accent-green);
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+[data-theme="light"] .note-dot-admin {
+  background: var(--accent-green);
+}
+
+/* ── Interactive Overview Layers ── */
+.interactive-layer {
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.interactive-layer:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .interactive-layer:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.clickable-hint {
+  font-size: 0.72rem;
+  color: var(--accent-blue);
+  font-weight: 600;
+  margin-top: 0.15rem;
+  text-decoration: underline;
+}
+
+/* ── Charging Modal & Panel ── */
+.charging-modal-card {
+  max-width: 520px;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.charging-panel {
+  padding: 1.5rem;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.charging-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.charging-panel-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.charging-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.charging-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-blue);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.charging-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.charging-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charging-driver-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.charging-driver-info strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.charging-vehicle {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .charging-vehicle {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.charging-amount {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fbbf24; /* Amber cost */
+}
+
+.charging-card-middle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.charging-app-tag {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-blue);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.charging-place {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.charging-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--border);
+  padding-top: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+

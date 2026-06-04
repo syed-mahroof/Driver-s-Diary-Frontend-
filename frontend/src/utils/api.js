@@ -86,6 +86,10 @@ export const adminAPI = {
     params: filters,
     responseType: 'blob',
   }),
+  exportMonthlyReport: (month, year) => api.get('/export-monthly-report/', {
+    params: { month, year },
+    responseType: 'blob',
+  }),
   createVehicle: (data) => api.post('/vehicles/create/', data),
   getAdvanceRequests: (params = {}) => api.get('/advance-salary/', { params }),
   updateAdvanceRequest: (id, data) => api.patch(`/advance-salary/${id}/update/`, data),

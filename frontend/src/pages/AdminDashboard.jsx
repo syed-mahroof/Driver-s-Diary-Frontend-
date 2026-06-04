@@ -20,6 +20,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showAdvancePanel, setShowAdvancePanel] = useState(false);
+  const [showChargesModal, setShowChargesModal] = useState(false);
+  const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [advanceRequests, setAdvanceRequests] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState(new Set());
@@ -36,6 +38,17 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const today = new Date().toLocaleDateString('en-CA');
   const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toLocaleDateString('en-CA');
   const firstOfMonth = today.slice(0, 8) + '01';
+
+  const getLastMonthRange = () => {
+    const d = new Date();
+    const firstOfLastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const lastOfLastMonth = new Date(d.getFullYear(), d.getMonth(), 0);
+    return {
+      start: firstOfLastMonth.toLocaleDateString('en-CA'),
+      end: lastOfLastMonth.toLocaleDateString('en-CA'),
+    };
+  };
+  const { start: lastMonthStart, end: lastMonthEnd } = getLastMonthRange();
 
   const getWeekStart = () => {
     const d = new Date();
@@ -177,6 +190,9 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   <button className="dropdown-item" onClick={() => { setShowVehicleModal(true); setMenuOpen(false); }}>
                     <CarIcon /> Add Vehicle
                   </button>
+                  <button className="dropdown-item" onClick={() => { setShowMonthlyReportModal(true); setMenuOpen(false); }}>
+                    <FileTextIcon /> Monthly Report
+                  </button>
                   <div className="dropdown-divider"></div>
                   <button className="dropdown-item logout-text" onClick={handleLogout}>
                     <LogoutIcon /> Logout
@@ -252,6 +268,12 @@ export default function AdminDashboard({ toggleTheme, theme }) {
               onClick={() => setFilters(f => ({ ...f, start_date: firstOfMonth, end_date: today }))}
             >
               This Month
+            </button>
+            <button 
+              className={isActive(lastMonthStart, lastMonthEnd) ? 'active' : ''} 
+              onClick={() => setFilters(f => ({ ...f, start_date: lastMonthStart, end_date: lastMonthEnd }))}
+            >
+              Last Month
             </button>
             <button 
               className={isActive(getYearStart(), today) ? 'active' : ''} 
@@ -337,7 +359,10 @@ export default function AdminDashboard({ toggleTheme, theme }) {
               </div>
 
               {/* Layer 4: Charging Cost */}
-              <div className="stats-layer full-layer charging-layer">
+              <div 
+                className="stats-layer full-layer charging-layer interactive-layer"
+                onClick={() => setShowChargesModal(true)}
+              >
                 <div className="layer-icon-box amber">
                   <BoltIcon />
                 </div>
@@ -346,6 +371,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                     Rs {Number(stats.total_charging_cost || 0).toLocaleString('en-IN')}
                   </div>
                   <div className="layer-label">Total Charging Cost</div>
+                  <div className="clickable-hint">Click to view breakdown</div>
                 </div>
               </div>
             </div>
@@ -414,6 +440,17 @@ export default function AdminDashboard({ toggleTheme, theme }) {
         </div>
       )}
 
+      {showChargesModal && (
+        <div className="modal-overlay" onClick={() => setShowChargesModal(false)}>
+          <div className="modal-card charging-modal-card" onClick={e => e.stopPropagation()}>
+            <ChargingDetailsPanel
+              charges={stats?.charging_details || []}
+              onClose={() => setShowChargesModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {showDriverModal && (
         <AddDriverModal
           onClose={() => setShowDriverModal(false)}
@@ -441,6 +478,12 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             setShowVehicleModal(false);
             fetchAll();
           }}
+        />
+      )}
+
+      {showMonthlyReportModal && (
+        <MonthlyReportModal
+          onClose={() => setShowMonthlyReportModal(false)}
         />
       )}
     </div>
@@ -728,7 +771,15 @@ function DriverManifest({ row }) {
                 <td>{ride?.company_name || ''}</td>
                 <td>{ride?.trip_type || ''}</td>
                 <td>{ride?.ride_time ? formatTime(ride.ride_time) : ''}</td>
-                <td>{formatRoute(ride)}</td>
+                <td>
+                  <div>{formatRoute(ride)}</div>
+                  {ride?.notes && (
+                    <div className="ride-note-admin">
+                      <span className="note-dot-admin" aria-hidden="true" />
+                      {ride.notes}
+                    </div>
+                  )}
+                </td>
                 <td>{ride?.total_km ? Number(ride.total_km).toLocaleString('en-IN') : ''}</td>
                 <td>{ride?.vehicle_number || ''}</td>
               </tr>
@@ -747,6 +798,12 @@ function DriverManifest({ row }) {
               <span className="trip-badge">{ride.trip_type || 'P'}</span>
             </div>
             <div className="manifest-route">{formatRoute(ride)}</div>
+            {ride.notes && (
+              <div className="ride-note-admin">
+                <span className="note-dot-admin" aria-hidden="true" />
+                {ride.notes}
+              </div>
+            )}
             <div className="manifest-card-meta">
               {ride.ride_time && <span><ClockIcon /> {formatTime(ride.ride_time)}</span>}
               {ride.total_km && <span><RulerIcon /> {Number(ride.total_km).toLocaleString('en-IN')} km</span>}
@@ -923,5 +980,150 @@ function AdvanceRequestsPanel({ requests, onUpdate, onClose }) {
         </>
       )}
     </section>
+  );
+}
+
+function ChargingDetailsPanel({ charges, onClose }) {
+  return (
+    <section className="charging-panel">
+      <div className="charging-panel-header">
+        <h3>Charging Cost Details</h3>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+      </div>
+
+      {charges.length === 0 ? (
+        <div className="empty-state">No charging records found for the selected period.</div>
+      ) : (
+        <div className="charging-list">
+          {charges.map(charge => (
+            <div key={charge.id} className="charging-card">
+              <div className="charging-card-top">
+                <div className="charging-driver-info">
+                  <strong>{charge.driver_name}</strong>
+                  <span className="charging-vehicle">{charge.vehicle_number}</span>
+                </div>
+                <span className="charging-amount">₹{Number(charge.charge_amount).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="charging-card-middle">
+                <span className="charging-app-tag">{charge.app_used}</span>
+                <span className="charging-place">{charge.place}</span>
+              </div>
+              <div className="charging-card-meta">
+                <span>{formatDate(charge.date)}</span>
+                <span>{charge.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const FileTextIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+);
+
+function MonthlyReportModal({ onClose }) {
+  const currentYear = new Date().getFullYear();
+  
+  // Set default to last month
+  const getPrevMonthAndYear = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return {
+      month: d.getMonth() + 1,
+      year: d.getFullYear()
+    };
+  };
+  
+  const prevDate = getPrevMonthAndYear();
+  const [month, setMonth] = useState(prevDate.month);
+  const [year, setYear] = useState(prevDate.year);
+  const [loading, setLoading] = useState(false);
+
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' },
+  ];
+
+  const years = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await adminAPI.exportMonthlyReport(month, year);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const monthLabel = months.find(m => m.value === Number(month))?.label || month;
+      a.download = `monthly_report_${monthLabel}_${year}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      onClose();
+    } catch (err) {
+      let errorMsg = err.message;
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          errorMsg = parsed.error || parsed.detail || errorMsg;
+        } catch (_) {}
+      } else {
+        errorMsg = err.response?.data?.error || err.response?.data?.detail || errorMsg;
+      }
+      alert(`Export failed: ${errorMsg}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Monthly Company Report</h3>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Select Month</label>
+            <select value={month} onChange={e => setMonth(Number(e.target.value))}>
+              {months.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Select Year</label>
+            <select value={year} onChange={e => setYear(Number(e.target.value))}>
+              {years.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn-submit" disabled={loading}>
+              {loading ? 'Exporting...' : 'Export Excel'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

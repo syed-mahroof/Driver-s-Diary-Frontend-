@@ -57,6 +57,8 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const [submitting, setSubmitting] = useState(false);
   const [submittingCharge, setSubmittingCharge] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [showChargeSuccess, setShowChargeSuccess] = useState(false);
+  const [lastSavedCharge, setLastSavedCharge] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [seaterType, setSeaterType] = useState(4);
   const [showDefaultCarModal, setShowDefaultCarModal] = useState(false);
@@ -241,15 +243,17 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     setSubmittingCharge(true);
     try {
       if (isOnline) {
-        await driverAPI.createCharge({
+        const savedData = {
           date: chargeForm.date,
           app_used: chargeForm.app_used,
           time: chargeForm.time,
           place: chargeForm.place,
           vehicle_number: chargeForm.vehicle_number,
           charge_amount: chargeForm.charge_amount,
-        });
-        setSuccessMsg('Charge details saved successfully!');
+        };
+        await driverAPI.createCharge(savedData);
+        setLastSavedCharge(savedData);
+        setShowChargeSuccess(true);
       } else {
         alert('Offline saving for charge details is not yet supported. Please go online.');
       }
@@ -263,7 +267,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
         charge_amount: '',
       });
       setShowChargeForm(false);
-      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       alert('Failed to save charge details: ' + (err.response?.data?.detail || err.message));
     } finally {
@@ -914,6 +917,66 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Charge Saved Success Modal */}
+        {showChargeSuccess && lastSavedCharge && (
+          <div className="charge-success-overlay" onClick={() => setShowChargeSuccess(false)}>
+            <div className="charge-success-card" onClick={e => e.stopPropagation()}>
+              <div className="charge-success-icon-wrap">
+                <div className="charge-success-pulse" />
+                <svg className="charge-success-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <div className="charge-success-bolt">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </div>
+              </div>
+
+              <h3 className="charge-success-title">Charge Logged!</h3>
+              <p className="charge-success-subtitle">Your vehicle charge details have been saved successfully.</p>
+
+              <div className="charge-receipt">
+                <div className="receipt-amount-container">
+                  <span className="receipt-amount-label">Amount Paid</span>
+                  <span className="receipt-amount-val">₹{Number(lastSavedCharge.charge_amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                
+                <div className="receipt-divider" />
+                
+                <div className="receipt-details">
+                  <div className="receipt-row">
+                    <span className="receipt-label">App Used</span>
+                    <span className="receipt-val highlight-app">{lastSavedCharge.app_used}</span>
+                  </div>
+                  <div className="receipt-row">
+                    <span className="receipt-label">Vehicle</span>
+                    <span className="receipt-val">{lastSavedCharge.vehicle_number}</span>
+                  </div>
+                  <div className="receipt-row">
+                    <span className="receipt-label">Location</span>
+                    <span className="receipt-val truncate-text" title={lastSavedCharge.place}>{lastSavedCharge.place}</span>
+                  </div>
+                  <div className="receipt-row">
+                    <span className="receipt-label">Time & Date</span>
+                    <span className="receipt-val">
+                      {formatTime(lastSavedCharge.time)} • {new Date(`${lastSavedCharge.date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="button" 
+                className="charge-success-btn"
+                onClick={() => setShowChargeSuccess(false)}
+              >
+                Awesome, Got it!
+              </button>
             </div>
           </div>
         )}
