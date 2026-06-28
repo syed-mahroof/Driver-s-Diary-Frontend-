@@ -175,7 +175,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       return source.filter(t => allowed.includes(t.value));
     }
 
-    if (companyName.includes('zellis')) {
+    if (companyName.includes('zellis') || companyName.includes('dodge')) {
       const allowed = stateObj.trip_type === 'P'
         ? ['13:00', '13:30', '14:00']
         : ['22:00', '22:30', '23:00'];

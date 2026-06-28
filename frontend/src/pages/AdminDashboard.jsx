@@ -315,7 +315,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                       <div className="company-stat-chip" key={c.name}>
                         <span className="chip-name">{c.name}</span>
                         <span className="chip-count">{c.count}</span>
-                        {c.name.toLowerCase() === 'zellis' && c.total_km > 0 && (
+                        {(c.name.toLowerCase().includes('zellis') || c.name.toLowerCase().includes('dodge')) && c.total_km > 0 && (
                           <span className="chip-km">{c.total_km.toLocaleString('en-IN')} km</span>
                         )}
                       </div>
@@ -836,7 +836,7 @@ function DriverManifest({ row }) {
             <span className="company-chip" key={name}>
               {name}
               <span className="chip-count">{data.count}</span>
-              {name.toLowerCase() === 'zellis' && data.km > 0 && (
+              {(name.toLowerCase().includes('zellis') || name.toLowerCase().includes('dodge')) && data.km > 0 && (
                 <span className="chip-km">{data.km.toLocaleString('en-IN')} km</span>
               )}
             </span>
@@ -1276,7 +1276,7 @@ function AddChargeModal({ drivers, vehicles, onClose, onSuccess }) {
             >
               <option value="">Select Vehicle</option>
               {vehicles.map(v => (
-                <option key={v.id} value={v.vehicle_number}>{v.vehicle_number}</option>
+                <option key={v.id} value={v.number}>{v.number}</option>
               ))}
             </select>
           </div>
