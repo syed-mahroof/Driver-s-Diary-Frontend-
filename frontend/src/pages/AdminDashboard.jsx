@@ -11,6 +11,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [stats, setStats] = useState(null);
   const [reports, setReports] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -21,6 +22,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showAdvancePanel, setShowAdvancePanel] = useState(false);
   const [showChargesModal, setShowChargesModal] = useState(false);
+  const [showAddChargeModal, setShowAddChargeModal] = useState(false);
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [advanceRequests, setAdvanceRequests] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -73,16 +75,18 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       const params = Object.fromEntries(
         Object.entries(filters).filter(([, value]) => value !== '')
       );
-      const [statsRes, reportsRes, driversRes, companiesRes] = await Promise.all([
+      const [statsRes, reportsRes, driversRes, companiesRes, vehiclesRes] = await Promise.all([
         adminAPI.getDashboard(params),
         adminAPI.getReports(params),
         adminAPI.getDrivers(),
         adminAPI.getCompanies(),
+        adminAPI.getVehicles(),
       ]);
       setStats(statsRes.data);
       setReports(reportsRes.data);
       setDrivers(driversRes.data);
       setCompanies(companiesRes.data);
+      setVehicles(vehiclesRes.data);
     } catch (err) {
       console.error('Admin fetch failed', err);
     } finally {
@@ -446,9 +450,22 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             <ChargingDetailsPanel
               charges={stats?.charging_details || []}
               onClose={() => setShowChargesModal(false)}
+              onAddCharge={() => setShowAddChargeModal(true)}
             />
           </div>
         </div>
+      )}
+
+      {showAddChargeModal && (
+        <AddChargeModal
+          drivers={drivers}
+          vehicles={vehicles}
+          onClose={() => setShowAddChargeModal(false)}
+          onSuccess={() => {
+            setShowAddChargeModal(false);
+            fetchAll();
+          }}
+        />
       )}
 
       {showDriverModal && (
@@ -983,11 +1000,14 @@ function AdvanceRequestsPanel({ requests, onUpdate, onClose }) {
   );
 }
 
-function ChargingDetailsPanel({ charges, onClose }) {
+function ChargingDetailsPanel({ charges, onClose, onAddCharge }) {
   return (
     <section className="charging-panel">
       <div className="charging-panel-header">
-        <h3>Charging Cost Details</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <h3>Charging Cost Details</h3>
+          <button className="btn-submit" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', width: 'auto' }} onClick={onAddCharge}>+ Add</button>
+        </div>
         <button className="modal-close" onClick={onClose}>&times;</button>
       </div>
 
@@ -1120,6 +1140,161 @@ function MonthlyReportModal({ onClose }) {
             <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-submit" disabled={loading}>
               {loading ? 'Exporting...' : 'Export Excel'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AddChargeModal({ drivers, vehicles, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    driver_id: '',
+    date: new Date().toLocaleDateString('en-CA'),
+    app_used: '',
+    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    place: '',
+    vehicle_number: '',
+    charge_amount: ''
+  });
+  const [isOtherApp, setIsOtherApp] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const payload = {
+        date: formData.date,
+        app_used: formData.app_used,
+        time: formData.time,
+        place: formData.place,
+        vehicle_number: formData.vehicle_number,
+        charge_amount: parseFloat(formData.charge_amount),
+      };
+      if (formData.driver_id) {
+        payload.driver = formData.driver_id;
+      }
+      await adminAPI.createCharge(payload);
+      onSuccess();
+    } catch (err) {
+      alert('Failed to add charge: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Add Charge</h3>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Driver (Optional)</label>
+            <select
+              value={formData.driver_id}
+              onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
+            >
+              <option value="">-- No Driver specified --</option>
+              {drivers.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Date</label>
+            <input
+              type="date"
+              required
+              value={formData.date}
+              onChange={e => setFormData({ ...formData, date: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label>App Used</label>
+            <select
+              required
+              value={isOtherApp ? 'Other' : formData.app_used}
+              onChange={e => {
+                const val = e.target.value;
+                setIsOtherApp(val === 'Other');
+                setFormData({ ...formData, app_used: val === 'Other' ? '' : val });
+              }}
+            >
+              <option value="">Select App</option>
+              <option value="Tata Power">Tata Power</option>
+              <option value="Zeon Charging">Zeon Charging</option>
+              <option value="Chargemod">Chargemod</option>
+              <option value="Statiq">Statiq</option>
+              <option value="Thunder+">Thunder+</option>
+              <option value="GoEc">GoEc</option>
+              <option value="ANERTEV">ANERTEV</option>
+              <option value="ESYGO">ESYGO</option>
+              <option value="KSEB-KEMApp">KSEB-KEMApp</option>
+              <option value="Other">Other</option>
+            </select>
+            {isOtherApp && (
+              <input
+                type="text"
+                required
+                placeholder="Enter custom app name"
+                value={formData.app_used}
+                onChange={e => setFormData({ ...formData, app_used: e.target.value })}
+                style={{ marginTop: '0.5rem' }}
+              />
+            )}
+          </div>
+          <div className="form-group">
+            <label>Time</label>
+            <input
+              type="time"
+              required
+              value={formData.time}
+              onChange={e => setFormData({ ...formData, time: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Place</label>
+            <input
+              type="text"
+              required
+              placeholder="Charging location"
+              value={formData.place}
+              onChange={e => setFormData({ ...formData, place: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Vehicle</label>
+            <select
+              required
+              value={formData.vehicle_number}
+              onChange={e => setFormData({ ...formData, vehicle_number: e.target.value })}
+            >
+              <option value="">Select Vehicle</option>
+              {vehicles.map(v => (
+                <option key={v.id} value={v.vehicle_number}>{v.vehicle_number}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Amount (₹)</label>
+            <input
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              value={formData.charge_amount}
+              onChange={e => setFormData({ ...formData, charge_amount: e.target.value })}
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn-submit" disabled={loading}>
+              {loading ? 'Adding...' : 'Add Charge'}
             </button>
           </div>
         </form>

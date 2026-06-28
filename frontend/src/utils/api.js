@@ -90,7 +90,9 @@ export const adminAPI = {
     params: { month, year },
     responseType: 'blob',
   }),
+  getVehicles: () => api.get('/vehicles/'),
   createVehicle: (data) => api.post('/vehicles/create/', data),
   getAdvanceRequests: (params = {}) => api.get('/advance-salary/', { params }),
   updateAdvanceRequest: (id, data) => api.patch(`/advance-salary/${id}/update/`, data),
+  createCharge: (data) => api.post('/admin/charge/create/', data),
 };

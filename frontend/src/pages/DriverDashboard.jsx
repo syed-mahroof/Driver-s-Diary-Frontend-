@@ -646,7 +646,13 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           </div>
         </div>
 
+        {/* Live Earnings & Target Tracker */}
+        {(dashboard || !isOnline) && (
+          <EarningsTracker dashboard={dashboard} isOnline={isOnline} />
+        )}
+
         {/* Action Buttons */}
+
         <div className="action-buttons-grid">
           <button
             className="add-ride-btn"
@@ -1355,3 +1361,189 @@ function AdvanceSalaryModal({ onClose, onSuccess }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EARNINGS ENGINE CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+const MONTHLY_TARGET_TRIPS  = 120;          // Standard trips for base salary
+const MONTHLY_TARGET_SALARY = 20000;        // Rs 20,000 base monthly
+const BASE_TRIP_VALUE       = 20000 / 120;  // Rs 166.67 per standard trip
+const INCENTIVE_TRIP_VALUE  = 200;          // Rs 200 per trip above 120
+const SPECIAL_KM_RATE       = 3.5;          // Rs 3.5/km for Zellis/Dodge
+const DAILY_TARGET_SALARY   = 1000;         // Rs 1,000 target per day (6 trips)
+
+/**
+ * Pure SVG donut chart — no library dependency.
+ * Uses stroke-dasharray: circumference; stroke-dashoffset: circumference × (1-pct)
+ */
+function DonutChart({ pct, earningsDisplay, label, sublabel, state, svgSize = 120, radius = 48 }) {
+  const circumference = 2 * Math.PI * radius;
+  // Cap visual fill at 100% (gold state can exceed 100% numerically)
+  const fillPct = Math.min(pct, 1);
+  const dashOffset = circumference * (1 - fillPct);
+
+  return (
+    <div className={`et-chart-wrap ${state}`}>
+      <div className="et-donut-container">
+        <svg
+          className="et-donut-svg"
+          viewBox={`0 0 ${svgSize} ${svgSize}`}
+          width={svgSize}
+          height={svgSize}
+          aria-label={`${label}: ${earningsDisplay}`}
+        >
+          {/* Background track */}
+          <circle
+            className="et-donut-bg"
+            cx={svgSize / 2}
+            cy={svgSize / 2}
+            r={radius}
+          />
+          {/* Animated fill arc */}
+          <circle
+            className="et-donut-fill"
+            cx={svgSize / 2}
+            cy={svgSize / 2}
+            r={radius}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={dashOffset}
+          />
+        </svg>
+
+        {/* Center text overlay — rendered upright (compensates for -90deg rotation) */}
+        <div className="et-donut-center">
+          <span className="et-center-amount">{earningsDisplay}</span>
+          <span className="et-center-pct">{Math.round(pct * 100)}%</span>
+        </div>
+      </div>
+
+      <div className="et-chart-label">
+        <span className="et-label-title">{label}</span>
+        <span className="et-label-target">{sublabel}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Determines the CSS state class from a progress ratio (0–1+).
+ * < 0.50  → danger  (red)
+ * 0.50–0.99 → on-track (green)
+ * ≥ 1.00  → gold
+ */
+function getEarningsState(pct) {
+  if (pct >= 1) return 'et-gold';
+  if (pct >= 0.5) return 'et-on-track';
+  return 'et-danger';
+}
+
+function fmt(n) {
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+/**
+ * EarningsTracker — the gamified live earnings dashboard block.
+ * Props:
+ *   dashboard  — full dashboard API response object
+ *   isOnline   — boolean from useSync
+ */
+function EarningsTracker({ dashboard, isOnline }) {
+  // ── Pull aggregates from dashboard (with safe defaults) ──────────────────
+  const monthlyStd  = dashboard?.monthly_standard_rides  ?? 0;
+  const monthlyKms  = dashboard?.monthly_special_kms     ?? 0;
+  const todayStd    = dashboard?.today_standard_rides    ?? 0;
+  const todayKms    = dashboard?.today_special_kms       ?? 0;
+
+  // ── Salary calculation (the Earnings Engine) ─────────────────────────────
+  // Monthly
+  const monthlyBaseEarnings      = monthlyStd * BASE_TRIP_VALUE;
+  const monthlyKmEarnings        = monthlyKms * SPECIAL_KM_RATE;
+  const monthlyIncentiveTrips    = Math.max(0, monthlyStd - MONTHLY_TARGET_TRIPS);
+  const monthlyIncentiveEarnings = monthlyIncentiveTrips * INCENTIVE_TRIP_VALUE;
+  const monthlyTotal             = monthlyBaseEarnings + monthlyKmEarnings + monthlyIncentiveEarnings;
+
+  // Daily
+  const dailyBaseEarnings  = todayStd * BASE_TRIP_VALUE;
+  const dailyKmEarnings    = todayKms * SPECIAL_KM_RATE;
+  const dailyTotal         = dailyBaseEarnings + dailyKmEarnings;
+
+  // ── Progress ratios ───────────────────────────────────────────────────────
+  const dailyPct   = DAILY_TARGET_SALARY   > 0 ? dailyTotal   / DAILY_TARGET_SALARY   : 0;
+  const monthlyPct = MONTHLY_TARGET_SALARY > 0 ? monthlyTotal / MONTHLY_TARGET_SALARY : 0;
+
+  // ── State classes ─────────────────────────────────────────────────────────
+  const dailyState   = getEarningsState(dailyPct);
+  const monthlyState = getEarningsState(monthlyPct);
+  const isGoldMonth  = monthlyPct >= 1;
+
+  // ── Bonus countdown (show when within 20 trips of the 120-trip threshold) ─
+  const tripsUntilBonus = MONTHLY_TARGET_TRIPS - monthlyStd;
+  const showBonusAlert  = tripsUntilBonus > 0 && tripsUntilBonus <= 20;
+
+  return (
+    <div className={`earnings-tracker${isGoldMonth ? ' et-gold-card' : ''}`}>
+      {/* ── Header ─────────────────────────────────────── */}
+      <div className="et-header">
+        <span className="et-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <WalletIcon style={{ width: '14px', height: '14px' }} /> LIVE EARNINGS
+        </span>
+        {isGoldMonth && (
+          <span className="et-gold-badge">🏆 Gold Level!</span>
+        )}
+      </div>
+
+      {/* ── Offline note ───────────────────────────────── */}
+      {!isOnline && (
+        <div className="et-offline-note">
+          <span>⚡</span>
+          Earnings will update when online.
+        </div>
+      )}
+
+      {/* ── Two donut charts ───────────────────────────── */}
+      <div className="et-charts-row">
+        <DonutChart
+          pct={dailyPct}
+          earningsDisplay={fmt(dailyTotal)}
+          label="Today"
+          sublabel={`Target: ${fmt(DAILY_TARGET_SALARY)}`}
+          state={dailyState}
+        />
+        <DonutChart
+          pct={monthlyPct}
+          earningsDisplay={fmt(monthlyTotal)}
+          label="This Month"
+          sublabel={`Target: ${fmt(MONTHLY_TARGET_SALARY)}`}
+          state={monthlyState}
+        />
+      </div>
+
+      {/* ── Breakdown pills ────────────────────────────── */}
+      <div className="et-breakdown">
+        <div className="et-pill">
+          <span className="et-pill-label">Base</span>
+          <span className="et-pill-value">{fmt(monthlyBaseEarnings)}</span>
+        </div>
+        <div className="et-pill">
+          <span className="et-pill-label">KM</span>
+          <span className="et-pill-value">{fmt(monthlyKmEarnings)}</span>
+        </div>
+        <div className={`et-pill${monthlyIncentiveEarnings > 0 ? ' et-pill-bonus' : ''}`}>
+          <span className="et-pill-label">Bonus</span>
+          <span className="et-pill-value">{fmt(monthlyIncentiveEarnings)}</span>
+        </div>
+      </div>
+
+      {/* ── Animated bonus countdown (shows when < 20 trips away from threshold) */}
+      {showBonusAlert && (
+        <div className="et-bonus-alert">
+          <span className="et-bonus-alert-icon">🎯</span>
+          <span className="et-bonus-alert-text">
+            Only <strong>{tripsUntilBonus} trip{tripsUntilBonus !== 1 ? 's' : ''}</strong> until you unlock ₹200/trip bonus!
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+

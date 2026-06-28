@@ -1016,3 +1016,336 @@
   color: #fff;
 }
 
+
+/* ═══════════════════════════════════════════════════════
+   EARNINGS TRACKER — Live Earnings & Target Gamification
+   ═══════════════════════════════════════════════════════ */
+
+.earnings-tracker {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gold-state card gets a warm glow border */
+.earnings-tracker.et-gold-card {
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow: 0 0 28px rgba(251, 191, 36, 0.1);
+}
+
+/* Subtle animated shimmer strip at top when Gold */
+.earnings-tracker.et-gold-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(251,191,36,0.8), transparent);
+  animation: goldShimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes goldShimmer {
+  0%   { left: -60%; }
+  100% { left: 120%; }
+}
+
+/* Section header */
+.et-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.et-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.et-gold-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  animation: goldPulse 2s ease-in-out infinite;
+  letter-spacing: 0.03em;
+}
+
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+  50%       { box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.25); }
+}
+
+/* ── Charts Row ───────────────────────────────── */
+.et-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.et-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* SVG Donut */
+.et-donut-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.et-donut-svg {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+/* Background track */
+.et-donut-bg {
+  fill: none;
+  stroke: var(--bg-input);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+/* Animated fill arc */
+.et-donut-fill {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.34, 1.2, 0.64, 1),
+              stroke 0.5s ease;
+}
+
+/* Color states */
+.et-danger   .et-donut-fill { stroke: #f87171; }
+.et-on-track .et-donut-fill { stroke: var(--accent-green); }
+.et-gold     .et-donut-fill {
+  stroke: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+  animation: goldArcPulse 2s ease-in-out infinite;
+}
+
+@keyframes goldArcPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)); }
+  50%       { filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.9)); }
+}
+
+/* Center text overlay */
+.et-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+}
+
+.et-center-amount {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.et-center-pct {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+/* State-specific center text colors */
+.et-danger   .et-center-amount { color: #f87171; }
+.et-on-track .et-center-amount { color: var(--accent-green); }
+.et-gold     .et-center-amount { color: #fbbf24; }
+
+/* Chart label below donut */
+.et-chart-label {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.et-label-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.et-label-target {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* ── Earnings Breakdown Pills ─────────────────── */
+.et-breakdown {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.et-pill {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.4rem;
+}
+
+.et-pill-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.et-pill-value {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.et-pill.et-pill-bonus .et-pill-value { color: #fbbf24; }
+.et-pill.et-pill-bonus { border-color: rgba(251,191,36,0.2); }
+
+/* ── Bonus Countdown Alert ────────────────────── */
+.et-bonus-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px dashed rgba(251, 191, 36, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
+  animation: bonusBounce 2.5s ease-in-out infinite;
+}
+
+@keyframes bonusBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-2px); }
+}
+
+.et-bonus-alert-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.et-bonus-alert-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fbbf24;
+  line-height: 1.3;
+}
+
+.et-bonus-alert-text strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+/* ── Offline note ─────────────────────────────── */
+.et-offline-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+/* ── Mobile: stack charts on very small phones ── */
+@media (max-width: 380px) {
+  .et-charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .et-donut-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .et-donut-svg {
+    width: 100px;
+    height: 100px;
+  }
+
+  .et-center-amount {
+    font-size: 0.72rem;
+  }
+
+  .et-breakdown {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Light theme overrides ────────────────────── */
+[data-theme="light"] .et-donut-bg {
+  stroke: var(--bg-card2);
+}
+
+[data-theme="light"] .et-danger .et-donut-fill {
+  stroke: #dc2626;
+}
+
+[data-theme="light"] .et-pill {
+  background: var(--bg-card2);
+}
+
+[data-theme="light"] .et-gold-badge {
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.25);
+  color: #b45309;
+}
+
+[data-theme="light"] .et-bonus-alert {
+  background: rgba(217, 119, 6, 0.06);
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+[data-theme="light"] .et-bonus-alert-text {
+  color: #b45309;
+}
+
+[data-theme="light"] .et-pill.et-pill-bonus .et-pill-value {
+  color: #b45309;
+}
