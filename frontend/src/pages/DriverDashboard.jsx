@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { useSync } from '../hooks/useSync';
@@ -177,10 +178,18 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       return source.filter(t => allowed.includes(t.value));
     }
 
-    if (companyName.includes('zellis') || companyName.includes('dodge')) {
+    if (companyName.includes('zellis')) {
       const allowed = stateObj.trip_type === 'P'
         ? ['13:00', '13:30', '14:00']
         : ['22:00', '22:30', '23:00'];
+      const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
+      return source.filter(t => allowed.includes(t.value));
+    }
+
+    if (companyName.includes('dodge')) {
+      const allowed = stateObj.trip_type === 'P'
+        ? ['09:00', '17:30']
+        : ['17:30', '02:00'];
       const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
       return source.filter(t => allowed.includes(t.value));
     }
@@ -196,7 +205,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     if (companyName.includes('servesys')) {
       const allowed = stateObj.trip_type === 'P'
         ? ['18:00', '18:30']
-        : ['03:00', '15:30'];
+        : ['03:30'];
       const source = stateObj.trip_type === 'P' ? pickupTimes : dropTimes;
       return source.filter(t => allowed.includes(t.value));
     }
@@ -1450,11 +1459,14 @@ function fmt(n) {
  *   isOnline   — boolean from useSync
  */
 function EarningsTracker({ dashboard, isOnline }) {
+  const [showAchievementDetail, setShowAchievementDetail] = useState(false);
+
   // ── Pull aggregates from dashboard (with safe defaults) ──────────────────
-  const monthlyStd  = dashboard?.monthly_standard_rides  ?? 0;
-  const monthlyKms  = dashboard?.monthly_special_kms     ?? 0;
-  const todayStd    = dashboard?.today_standard_rides    ?? 0;
-  const todayKms    = dashboard?.today_special_kms       ?? 0;
+  const monthlyStd       = dashboard?.monthly_standard_rides  ?? 0;
+  const monthlyKms       = dashboard?.monthly_special_kms     ?? 0;
+  const todayStd         = dashboard?.today_standard_rides    ?? 0;
+  const todayKms         = dashboard?.today_special_kms       ?? 0;
+  const cycleDaysElapsed = dashboard?.cycle_days_elapsed      ?? 1;
 
   // ── Salary calculation (the Earnings Engine) ─────────────────────────────
   // Monthly
@@ -1469,6 +1481,21 @@ function EarningsTracker({ dashboard, isOnline }) {
   const dailyKmEarnings    = todayKms * SPECIAL_KM_RATE;
   const dailyTotal         = dailyBaseEarnings + dailyKmEarnings;
 
+  // ── Cumulative Achievement Logic ──────────────────────────────────────────
+  const cumulativeTarget = cycleDaysElapsed * 1000;
+  const achievement      = monthlyTotal - cumulativeTarget;
+
+  let achievementFormatted = '₹0';
+  let achievementClass     = '';
+  
+  if (achievement < 0) {
+    achievementFormatted = `-₹${Math.abs(Math.round(achievement)).toLocaleString('en-IN')}`;
+    achievementClass     = ' et-deficit';
+  } else if (achievement > 0) {
+    achievementFormatted = `+₹${Math.round(achievement).toLocaleString('en-IN')}`;
+    achievementClass     = ' et-surplus';
+  }
+
   // ── Progress ratios ───────────────────────────────────────────────────────
   const dailyPct   = DAILY_TARGET_SALARY   > 0 ? dailyTotal   / DAILY_TARGET_SALARY   : 0;
   const monthlyPct = MONTHLY_TARGET_SALARY > 0 ? monthlyTotal / MONTHLY_TARGET_SALARY : 0;
@@ -1477,6 +1504,97 @@ function EarningsTracker({ dashboard, isOnline }) {
   const dailyState   = getEarningsState(dailyPct);
   const monthlyState = getEarningsState(monthlyPct);
   const isGoldMonth  = monthlyPct >= 1;
+  const isDailyGold  = dailyPct >= 1;
+
+  // ── One-Time Celebration Logic ────────────────────────────────────────────
+  const prevIsGold = useRef(isGoldMonth);
+  const prevIsDailyGold = useRef(isDailyGold);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [showDailyTag, setShowDailyTag] = useState(false);
+  const [dailyMessage, setDailyMessage] = useState('');
+
+  useEffect(() => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const storageKey = `gold-celebrated-${dashboard?.driver_name}-${todayStr}`;
+
+    // Only fire if we transitioned from false -> true THIS session
+    if (!prevIsGold.current && isGoldMonth) {
+      // And only if we haven't already celebrated today (survives remounts)
+      if (!localStorage.getItem(storageKey)) {
+        
+        // 1. Fire Confetti
+        const goldColors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d']; 
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          origin: { y: 0.25, x: 0.85 }, // Top right area near the badge
+          colors: goldColors,
+          shapes: ['circle', 'star'],
+          disableForReducedMotion: true // Respect user preferences
+        });
+
+        // 2. Show Motivational Toast
+        const messages = [
+          "Target hit! Every extra trip now earns a ₹200 bonus.",
+          "Gold level reached! Keep driving to stack those ₹200 bonuses.",
+          "You crushed the target! Time to rack up incentive tier cash.",
+          "Goal achieved! Extra trips equal extra ₹200 bonuses.",
+          "Unstoppable! Keep the momentum going for ₹200 per trip.",
+          "Target smashed! Now entering the ₹200 bonus zone."
+        ];
+        setToastMessage(messages[Math.floor(Math.random() * messages.length)]);
+        setShowToast(true);
+
+        // Mark as celebrated for today
+        localStorage.setItem(storageKey, 'true');
+
+        // Auto dismiss after 4 seconds
+        setTimeout(() => setShowToast(false), 4000);
+      }
+    }
+    prevIsGold.current = isGoldMonth;
+
+    // --- Daily Goal Celebration ---
+    const dailyStorageKey = `daily-goal-${dashboard?.driver_name}-${todayStr}`;
+    if (!prevIsDailyGold.current && isDailyGold) {
+      if (!localStorage.getItem(dailyStorageKey)) {
+        try {
+          const goldColors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d']; 
+          confetti({
+            particleCount: 40,
+            spread: 60,
+            origin: { x: 0.5, y: 0.5 }, // Center of viewport
+            colors: goldColors,
+            shapes: ['circle', 'star'],
+            zIndex: 9999, // Ensure it renders over everything
+            disableForReducedMotion: true 
+          });
+        } catch (e) {
+          console.error("Confetti blocked by mobile viewport", e);
+        }
+        
+        const dailyMessages = [
+          "Goal Hit! 🎉",
+          "Crushed It! 💥",
+          "Unstoppable! ⚡",
+          "Nailed It! 🎯",
+          "Gold Tier! 🏆",
+          "Legendary! 🌟",
+          "Top Driver! 👑",
+          "Pure Profit! 💰",
+          "Smashed! 🚀",
+          "Bonus Zone! 🔥"
+        ];
+        setDailyMessage(dailyMessages[Math.floor(Math.random() * dailyMessages.length)]);
+        setShowDailyTag(true);
+        setTimeout(() => setShowDailyTag(false), 3500);
+
+        localStorage.setItem(dailyStorageKey, 'true');
+      }
+    }
+    prevIsDailyGold.current = isDailyGold;
+  }, [isGoldMonth, isDailyGold]);
 
   // ── Bonus countdown (show when within 20 trips of the 120-trip threshold) ─
   const tripsUntilBonus = MONTHLY_TARGET_TRIPS - monthlyStd;
@@ -1494,6 +1612,14 @@ function EarningsTracker({ dashboard, isOnline }) {
         )}
       </div>
 
+      {/* ── Motivational Toast ─────────────────────────── */}
+      {showToast && (
+        <div className="et-motivation-toast" onClick={() => setShowToast(false)}>
+          <span className="et-toast-icon">✨</span>
+          <span className="et-toast-text">{toastMessage}</span>
+        </div>
+      )}
+
       {/* ── Offline note ───────────────────────────────── */}
       {!isOnline && (
         <div className="et-offline-note">
@@ -1504,13 +1630,16 @@ function EarningsTracker({ dashboard, isOnline }) {
 
       {/* ── Two donut charts ───────────────────────────── */}
       <div className="et-charts-row">
-        <DonutChart
-          pct={dailyPct}
-          earningsDisplay={fmt(dailyTotal)}
-          label="Today"
-          sublabel={`Target: ${fmt(DAILY_TARGET_SALARY)}`}
-          state={dailyState}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+          <DonutChart
+            pct={dailyPct}
+            earningsDisplay={fmt(dailyTotal)}
+            label="Today"
+            sublabel={`Target: ${fmt(DAILY_TARGET_SALARY)}`}
+            state={dailyState}
+          />
+          {showDailyTag && <span className="et-daily-goal-tag">🔥 {dailyMessage}</span>}
+        </div>
         <DonutChart
           pct={monthlyPct}
           earningsDisplay={fmt(monthlyTotal)}
@@ -1523,16 +1652,25 @@ function EarningsTracker({ dashboard, isOnline }) {
       {/* ── Breakdown pills ────────────────────────────── */}
       <div className="et-breakdown">
         <div className="et-pill">
-          <span className="et-pill-label">Base</span>
+          <span className="et-pill-label">Ride Earnings</span>
           <span className="et-pill-value">{fmt(monthlyBaseEarnings)}</span>
         </div>
         <div className="et-pill">
-          <span className="et-pill-label">KM</span>
+          <span className="et-pill-label">Km Earnings</span>
           <span className="et-pill-value">{fmt(monthlyKmEarnings)}</span>
         </div>
-        <div className={`et-pill${monthlyIncentiveEarnings > 0 ? ' et-pill-bonus' : ''}`}>
-          <span className="et-pill-label">Bonus</span>
-          <span className="et-pill-value">{fmt(monthlyIncentiveEarnings)}</span>
+        <div 
+          className={`et-pill et-pill-interactive${achievementClass}`}
+          onClick={() => setShowAchievementDetail(!showAchievementDetail)}
+          style={{ cursor: 'pointer' }}
+        >
+          <span className="et-pill-label">Achievement</span>
+          <span className="et-pill-value">{achievementFormatted}</span>
+          {showAchievementDetail && (
+            <span className="et-pill-subtitle" style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '2px', display: 'block' }}>
+              vs. target ({fmt(cumulativeTarget)})
+            </span>
+          )}
         </div>
       </div>
 
