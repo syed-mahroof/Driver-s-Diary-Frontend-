@@ -58,6 +58,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
   const [dashboard, setDashboard] = useState(null);
   const [vehicles, setVehicles] = useState([]);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const [profileError, setProfileError] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -662,6 +663,17 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           <EarningsTracker dashboard={dashboard} isOnline={isOnline} />
         )}
 
+        {/* Complete Statistics Button */}
+        {dashboard && (
+          <button 
+            className="btn-submit" 
+            style={{ width: '100%', marginBottom: '1rem', background: 'var(--accent-primary)', color: '#fff', border: 'none', padding: '0.8rem', borderRadius: '12px', fontWeight: 'bold' }}
+            onClick={() => setShowStatsModal(true)}
+          >
+            📊 Complete Statistics
+          </button>
+        )}
+
         {/* Action Buttons */}
 
         <div className="action-buttons-grid">
@@ -1150,6 +1162,12 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             }}
           />
         )}
+        {showStatsModal && (
+          <StatisticsModal 
+            dashboard={dashboard} 
+            onClose={() => setShowStatsModal(false)} 
+          />
+        )}
           </>
         )}
       </main>
@@ -1372,6 +1390,61 @@ function AdvanceSalaryModal({ onClose, onSuccess }) {
     </div>
   );
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// Complete Statistics Modal
+// ─────────────────────────────────────────────────────────────────────────────
+function StatisticsModal({ dashboard, onClose }) {
+  if (!dashboard) return null;
+
+  const {
+    monthly_standard_rides = 0,
+    monthly_special_kms = 0,
+    monthly_full_days = 0,
+    monthly_half_days = 0,
+    monthly_leaves = 0,
+    monthly_holidays = 0,
+  } = dashboard;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+        <div className="modal-header">
+          <h3>Complete Statistics</h3>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem' }}>
+          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{monthly_standard_rides}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Standard Rides</div>
+          </div>
+          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{monthly_special_kms}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Special KMs</div>
+          </div>
+          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{monthly_full_days}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Full Days</div>
+          </div>
+          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{monthly_half_days}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Half Days</div>
+          </div>
+          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{monthly_leaves}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Leaves Taken</div>
+          </div>
+          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{monthly_holidays}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Holidays</div>
+          </div>
+        </div>
+        <div className="modal-actions" style={{ padding: '0 1rem 1rem' }}>
+          <button type="button" className="btn-submit" onClick={onClose} style={{ width: '100%' }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EARNINGS ENGINE CONSTANTS
@@ -1442,6 +1515,13 @@ function DonutChart({ pct, earningsDisplay, label, sublabel, state, svgSize = 12
  * 0.50–0.99 → on-track (green)
  * ≥ 1.00  → gold
  */
+function getMonthlyEarningsState(total) {
+  if (total >= 20000) return 'et-gold';
+  if (total >= 18000) return 'et-on-track';
+  if (total >= 15000) return 'et-warning';
+  return 'et-danger';
+}
+
 function getEarningsState(pct) {
   if (pct >= 1) return 'et-gold';
   if (pct >= 0.5) return 'et-on-track';
@@ -1482,8 +1562,7 @@ function EarningsTracker({ dashboard, isOnline }) {
   const dailyTotal         = dailyBaseEarnings + dailyKmEarnings;
 
   // ── Cumulative Achievement Logic ──────────────────────────────────────────
-  const cumulativeTarget = cycleDaysElapsed * 1000;
-  const achievement      = monthlyTotal - cumulativeTarget;
+  const achievement      = monthlyTotal - MONTHLY_TARGET_SALARY;
 
   let achievementFormatted = '₹0';
   let achievementClass     = '';
@@ -1502,7 +1581,7 @@ function EarningsTracker({ dashboard, isOnline }) {
 
   // ── State classes ─────────────────────────────────────────────────────────
   const dailyState   = getEarningsState(dailyPct);
-  const monthlyState = getEarningsState(monthlyPct);
+  const monthlyState = getMonthlyEarningsState(monthlyTotal);
   const isGoldMonth  = monthlyPct >= 1;
   const isDailyGold  = dailyPct >= 1;
 
@@ -1601,7 +1680,7 @@ function EarningsTracker({ dashboard, isOnline }) {
   const showBonusAlert  = tripsUntilBonus > 0 && tripsUntilBonus <= 20;
 
   return (
-    <div className={`earnings-tracker${isGoldMonth ? ' et-gold-card' : ''}`}>
+    <div className={`earnings-tracker${isGoldMonth ? ' et-gold-card' : ''}${dailyTotal < DAILY_TARGET_SALARY ? ' et-daily-deficit-border' : ''}`}>
       {/* ── Header ─────────────────────────────────────── */}
       <div className="et-header">
         <span className="et-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1667,8 +1746,10 @@ function EarningsTracker({ dashboard, isOnline }) {
           <span className="et-pill-label">Achievement</span>
           <span className="et-pill-value">{achievementFormatted}</span>
           {showAchievementDetail && (
-            <span className="et-pill-subtitle" style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '2px', display: 'block' }}>
-              vs. target ({fmt(cumulativeTarget)})
+            <span className="et-pill-subtitle" style={{ fontSize: '0.65rem', opacity: 0.8, marginTop: '4px', display: 'block', whiteSpace: 'normal', textAlign: 'center', lineHeight: '1.2' }}>
+              {achievement < 0 
+                ? `Requires ${achievementFormatted.replace('-', '')} (≈ ${Math.ceil(Math.abs(achievement) / BASE_TRIP_VALUE)} rides) to hit target` 
+                : 'Monthly target achieved!'}
             </span>
           )}
         </div>

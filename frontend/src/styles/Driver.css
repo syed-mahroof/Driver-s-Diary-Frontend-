@@ -1140,6 +1140,7 @@
 
 /* Color states */
 .et-danger   .et-donut-fill { stroke: #f87171; }
+.et-warning  .et-donut-fill { stroke: #eab308; }
 .et-on-track .et-donut-fill { stroke: var(--accent-green); }
 .et-gold     .et-donut-fill {
   stroke: #fbbf24;
@@ -1325,6 +1326,20 @@
 
 [data-theme="light"] .et-danger .et-donut-fill {
   stroke: #dc2626;
+}
+
+[data-theme="light"] .et-warning .et-donut-fill {
+  stroke: #ca8a04;
+}
+
+.et-daily-deficit-border {
+  border: 1px solid #ef4444 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.15) !important;
+}
+
+[data-theme="light"] .et-daily-deficit-border {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.15) !important;
 }
 
 [data-theme="light"] .et-pill {
