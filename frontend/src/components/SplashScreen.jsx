@@ -35,7 +35,7 @@ export const SplashScreen = ({ onFinish }) => {
         <span className="splash-from">from</span>
         <div className="splash-brand-row">
           <img src={adhilLogo} alt="Adhil Logo" className="splash-small-logo" />
-          <span className="splash-brand-name">HeadGreen!</span>
+          <span className="splash-brand-name">HeadGreen!<sup className="splash-tm">™</sup></span>
         </div>
       </div>
     </div>

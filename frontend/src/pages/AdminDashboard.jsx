@@ -157,7 +157,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
           <img src="/logo.png" alt="Logo" className="header-logo-img" />
           <div className="header-title-container">
             <span className="header-title">Driver's Diary</span>
-            <span className="header-subtext">By <span>HeadGreen!</span></span>
+            <span className="header-subtext">By <span>HeadGreen!<sup className="brand-tm">™</sup></span></span>
           </div>
           <span className="header-badge">Admin</span>
         </div>
@@ -295,9 +295,9 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             </div>
             
             <div className="stats-layers">
-              {/* Layer 1: Total Rides + Companies */}
-              <div className="stats-layer full-layer rides-layer">
-                <div className="rides-left-section">
+              {/* Rides row: icon+value on the left, company chips flow on the right (wrap on mobile) */}
+              <div className="stats-layer rides-row">
+                <div className="rides-summary">
                   <div className="layer-icon-box blue">
                     <CarIcon />
                   </div>
@@ -306,27 +306,24 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                     <span className="layer-label">Total Rides</span>
                   </div>
                 </div>
-                
-                <div className="rides-right-section">
-                  <div className="company-chips-row">
-                    {(stats.company_breakdown || [])
-                      .sort((a, b) => b.count - a.count)
-                      .map(c => (
-                      <div className="company-stat-chip" key={c.name}>
-                        <span className="chip-name">{c.name}</span>
-                        <span className="chip-count">{c.count}</span>
-                        {(c.name.toLowerCase().includes('zellis') || c.name.toLowerCase().includes('dodge')) && c.total_km > 0 && (
-                          <span className="chip-km">{c.total_km.toLocaleString('en-IN')} km</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                <div className="company-chips-row">
+                  {(stats.company_breakdown || [])
+                    .sort((a, b) => b.count - a.count)
+                    .map(c => (
+                    <div className="company-stat-chip" key={c.name}>
+                      <span className="chip-name">{c.name}</span>
+                      <span className="chip-count">{c.count}</span>
+                      {(c.name.toLowerCase().includes('zellis') || c.name.toLowerCase().includes('dodge')) && c.total_km > 0 && (
+                        <span className="chip-km">{c.total_km.toLocaleString('en-IN')} km</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Layer 2: Two Halves */}
-              <div className="stats-layer split-layer">
-                <div className="layer-half">
+              {/* Drivers + Target Achieved, paired side by side */}
+              <div className="duo-row">
+                <div className="stats-layer duo-item">
                   <div className="layer-icon-box purple">
                     <UsersIcon />
                   </div>
@@ -335,7 +332,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                     <div className="layer-label">Active Drivers</div>
                   </div>
                 </div>
-                <div className="layer-half">
+                <div className="stats-layer duo-item">
                   <div className="layer-icon-box yellow-bg">
                     <SunIconSmall />
                   </div>
@@ -346,8 +343,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 </div>
               </div>
 
-              {/* Layer 3: Advance Salary */}
-              <div className="stats-layer full-layer advance-layer">
+              {/* Advance Salary Paid */}
+              <div className="stats-layer">
                 <div className="layer-icon-box teal">
                   <WalletIcon />
                 </div>
@@ -362,9 +359,9 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 </div>
               </div>
 
-              {/* Layer 4: Charging Cost */}
-              <div 
-                className="stats-layer full-layer charging-layer interactive-layer"
+              {/* Charging Cost (clickable) */}
+              <div
+                className="stats-layer interactive-layer"
                 onClick={() => setShowChargesModal(true)}
               >
                 <div className="layer-icon-box amber">

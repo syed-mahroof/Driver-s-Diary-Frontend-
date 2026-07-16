@@ -172,7 +172,7 @@ export default function Login() {
           <div className="login-logo">
             <img src="/logo.png" alt="Logo" className="logo-img" />
             <h1>Driver's Diary</h1>
-            <p className="header-subtext">By <span>HeadGreen!</span></p>
+            <p className="header-subtext">By <span>HeadGreen!<sup className="brand-tm">™</sup></span></p>
             <h2 style={{ fontSize: '1.2rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>Reset Password</h2>
             <p>
               {fpStep === 1 && 'Enter your registered email address'}

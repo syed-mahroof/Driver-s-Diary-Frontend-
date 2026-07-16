@@ -8,16 +8,56 @@
   background: var(--bg-dark);
   background-image: linear-gradient(160deg, rgba(16,185,129,0.08), transparent 38%);
   overflow-y: auto;
+  position: relative;
+  overflow-x: hidden;
 }
 
+/* Soft ambient glows behind the card — same restrained blob treatment as
+   the splash screen, so the auth flow feels like one continuous surface. */
+.login-page::before,
+.login-page::after {
+  content: '';
+  position: fixed;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.login-page::before {
+  background: var(--accent);
+  top: -80px;
+  right: -60px;
+}
+
+.login-page::after {
+  background: var(--accent-purple);
+  bottom: -80px;
+  left: -60px;
+}
+
+/* Frosted glass card — translucent surface + blur, matching the earnings
+   tracker's glass treatment elsewhere in the app. */
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-xl);
   padding: 2.5rem 2rem;
-  box-shadow: var(--shadow);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="light"] .login-card {
+  border-color: rgba(15, 23, 42, 0.10);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .register-card {
@@ -87,6 +127,19 @@
   border-color: var(--accent);
 }
 
+/* Slight glass tint + focus glow, scoped to the auth pages only */
+.login-page .form-group input,
+.login-page .form-group select,
+.login-page .form-group textarea {
+  background: rgba(148, 163, 184, 0.07);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-page .form-group input:focus,
+.login-page .form-group select:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
 .form-group select option {
   background: var(--bg-card);
 }
@@ -100,6 +153,11 @@
   font-size: 0.875rem;
   word-break: break-word;
 }
+
+/* #fca5a5/#6ee7b7 are pale, built for a dark background — wash out badly
+   against these banners' light tint on the light theme. */
+[data-theme="light"] .error-banner { color: var(--accent-red); }
+[data-theme="light"] .success-banner { color: var(--accent-green); }
 
 .btn-login {
   background: var(--accent);
@@ -119,9 +177,16 @@
   min-height: 48px;
 }
 
+.btn-login {
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25);
+}
+
 .btn-login:hover { opacity: 0.9; }
-.btn-login:active { transform: scale(0.98); }
-.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-login:active {
+  transform: scale(0.98);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
 
 .login-footer {
   text-align: center;
@@ -216,7 +281,9 @@
   font-size: 1.5rem;
   font-weight: 700;
   font-family: var(--font-mono);
-  background: var(--bg-input);
+  background: rgba(148, 163, 184, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);

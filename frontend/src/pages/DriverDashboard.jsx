@@ -536,7 +536,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           <img src="/logo.png" alt="Logo" className="header-logo-img" />
           <div className="header-title-container">
             <span className="header-title">Driver's Diary</span>
-            <span className="header-subtext">By <span>HeadGreen!</span></span>
+            <span className="header-subtext">By <span>HeadGreen!<sup className="brand-tm">™</sup></span></span>
           </div>
         </div>
         <div className="header-right">
@@ -665,12 +665,11 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
         {/* Complete Statistics Button */}
         {dashboard && (
-          <button 
-            className="btn-submit" 
-            style={{ width: '100%', marginBottom: '1rem', background: 'var(--accent-primary)', color: '#fff', border: 'none', padding: '0.8rem', borderRadius: '12px', fontWeight: 'bold' }}
+          <button
+            className="btn-submit stats-trigger-btn"
             onClick={() => setShowStatsModal(true)}
           >
-            📊 Complete Statistics
+            <StatsIcon /> Complete Statistics
           </button>
         )}
 
@@ -1390,56 +1389,137 @@ function AdvanceSalaryModal({ onClose, onSuccess }) {
     </div>
   );
 }
+const StatsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18" />
+    <path d="m19 9-5 5-4-4-3 3" />
+  </svg>
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Complete Statistics Modal
+// Complete Statistics Modal — cycle earnings breakdown, pace/forecast, and
+// attendance, all derived from the same computeEarnings() the live tracker
+// uses, so nothing here can drift out of sync with the dashboard above it.
 // ─────────────────────────────────────────────────────────────────────────────
 function StatisticsModal({ dashboard, onClose }) {
   if (!dashboard) return null;
 
   const {
-    monthly_standard_rides = 0,
-    monthly_special_kms = 0,
-    monthly_full_days = 0,
-    monthly_half_days = 0,
-    monthly_leaves = 0,
-    monthly_holidays = 0,
+    monthlyStd, monthlyKms,
+    monthlyBaseEarnings, monthlyKmEarnings, monthlyIncentiveTrips, monthlyIncentiveEarnings, monthlyTotal,
+    achievementFormatted, achievementClass, monthlyPct, dailyAverage, projectedTotal,
+    cycleWorkingDaysTotal, cycleWorkingDaysElapsed,
+  } = computeEarnings(dashboard);
+
+  const {
+    monthly_full_days: fullDays = 0,
+    monthly_half_days: halfDays = 0,
+    monthly_leaves: leaves = 0,
+    monthly_holidays: holidays = 0,
+    default_vehicle_number: vehicleNumber = '',
+    default_seater: seater = 4,
   } = dashboard;
+
+  const attendanceTotal = fullDays + halfDays + leaves + holidays;
+  const segPct = (n) => (attendanceTotal > 0 ? (n / attendanceTotal) * 100 : 0);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+      <div className="modal-card stats-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Complete Statistics</h3>
+          <h3 className="stats-modal-title"><StatsIcon /> Complete Statistics</h3>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
-        <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem' }}>
-          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{monthly_standard_rides}</div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Standard Rides</div>
+
+        <div className="stats-modal-body">
+          {/* Cycle earnings hero */}
+          <div className="stats-modal-hero">
+            <span className="stats-modal-hero-label">This Cycle&rsquo;s Earnings</span>
+            <span className="stats-modal-hero-total">{fmt(monthlyTotal)}</span>
+            <div className="stats-modal-progress-track">
+              <div
+                className="stats-modal-progress-fill"
+                style={{ width: `${Math.min(100, monthlyPct * 100)}%` }}
+              />
+            </div>
+            <div className="stats-modal-hero-footer">
+              <span>Target: {fmt(MONTHLY_TARGET_SALARY)}</span>
+              <span className={`stats-modal-achievement${achievementClass}`}>{achievementFormatted}</span>
+            </div>
           </div>
-          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{monthly_special_kms}</div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Special KMs</div>
+
+          {/* Earnings breakdown */}
+          <div className="stats-modal-pills-row">
+            <div className="stats-modal-pill">
+              <span className="stats-modal-pill-value">{fmt(monthlyBaseEarnings)}</span>
+              <span className="stats-modal-pill-label">Ride Earnings</span>
+              <span className="stats-modal-pill-sub">{monthlyStd} rides</span>
+            </div>
+            <div className="stats-modal-pill">
+              <span className="stats-modal-pill-value">{fmt(monthlyKmEarnings)}</span>
+              <span className="stats-modal-pill-label">KM Earnings</span>
+              <span className="stats-modal-pill-sub">{monthlyKms.toLocaleString('en-IN')} km</span>
+            </div>
+            <div className="stats-modal-pill stats-modal-pill-gold">
+              <span className="stats-modal-pill-value">{fmt(monthlyIncentiveEarnings)}</span>
+              <span className="stats-modal-pill-label">Bonus Earned</span>
+              <span className="stats-modal-pill-sub">{monthlyIncentiveTrips} extra trips</span>
+            </div>
           </div>
-          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{monthly_full_days}</div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Full Days</div>
+
+          {/* Pace / forecast — a genuinely new insight, not shown elsewhere */}
+          <div className="stats-modal-section-title">
+            Pace &middot; {cycleWorkingDaysElapsed} of ~{cycleWorkingDaysTotal} working days (weekends excluded)
           </div>
-          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{monthly_half_days}</div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Half Days</div>
+          <div className="stats-modal-pace-row">
+            <div className="stats-modal-pace-tile">
+              <span className="stats-modal-pace-value">{fmt(dailyAverage)}</span>
+              <span className="stats-modal-pace-label">Daily Average</span>
+            </div>
+            <div className="stats-modal-pace-tile">
+              <span className="stats-modal-pace-value">{fmt(projectedTotal)}</span>
+              <span className="stats-modal-pace-label">Projected Cycle Total</span>
+            </div>
           </div>
-          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{monthly_leaves}</div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Leaves Taken</div>
+
+          {/* Attendance breakdown */}
+          <div className="stats-modal-section-title">Attendance This Cycle</div>
+          {attendanceTotal > 0 && (
+            <div className="stats-modal-attendance-bar">
+              <div className="stats-modal-seg full" style={{ width: `${segPct(fullDays)}%` }} />
+              <div className="stats-modal-seg half" style={{ width: `${segPct(halfDays)}%` }} />
+              <div className="stats-modal-seg leave" style={{ width: `${segPct(leaves)}%` }} />
+              <div className="stats-modal-seg holiday" style={{ width: `${segPct(holidays)}%` }} />
+            </div>
+          )}
+          <div className="stats-modal-grid">
+            <div className="stats-modal-stat green">
+              <div className="stats-modal-stat-value">{fullDays}</div>
+              <div className="stats-modal-stat-label">Full Days</div>
+            </div>
+            <div className="stats-modal-stat amber">
+              <div className="stats-modal-stat-value">{halfDays}</div>
+              <div className="stats-modal-stat-label">Half Days</div>
+            </div>
+            <div className="stats-modal-stat red">
+              <div className="stats-modal-stat-value">{leaves}</div>
+              <div className="stats-modal-stat-label">Leaves Taken</div>
+            </div>
+            <div className="stats-modal-stat blue">
+              <div className="stats-modal-stat-value">{holidays}</div>
+              <div className="stats-modal-stat-label">Holidays</div>
+            </div>
           </div>
-          <div className="stat-box" style={{ background: 'var(--bg-card2)', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{monthly_holidays}</div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Holidays</div>
-          </div>
+
+          {vehicleNumber && (
+            <div className="stats-modal-footer">
+              <CarIconSmall /> Default vehicle: <strong>{vehicleNumber}</strong> ({seater} seater)
+            </div>
+          )}
         </div>
-        <div className="modal-actions" style={{ padding: '0 1rem 1rem' }}>
-          <button type="button" className="btn-submit" onClick={onClose} style={{ width: '100%' }}>Close</button>
+
+        <div className="modal-actions stats-modal-actions">
+          <button type="button" className="btn-submit" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -1455,6 +1535,19 @@ const BASE_TRIP_VALUE       = 20000 / 120;  // Rs 166.67 per standard trip
 const INCENTIVE_TRIP_VALUE  = 200;          // Rs 200 per trip above 120
 const SPECIAL_KM_RATE       = 3.5;          // Rs 3.5/km for Zellis/Dodge
 const DAILY_TARGET_SALARY   = 1000;         // Rs 1,000 target per day (6 trips)
+const CYCLE_LENGTH_DAYS     = 30;           // Fallback only, used if cycle_start/cycle_end are missing from the payload
+
+/** Counts Mon–Fri dates in [startISO, endISO], inclusive. Sat/Sun never earn (see backend Attendance model). */
+function countWeekdays(startISO, endISO) {
+  const start = new Date(`${startISO}T00:00:00`);
+  const end = new Date(`${endISO}T00:00:00`);
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) count++;
+  }
+  return count;
+}
 
 /**
  * Pure SVG donut chart — no library dependency.
@@ -1533,22 +1626,17 @@ function fmt(n) {
 }
 
 /**
- * EarningsTracker — the gamified live earnings dashboard block.
- * Props:
- *   dashboard  — full dashboard API response object
- *   isOnline   — boolean from useSync
+ * computeEarnings — the single source of truth for the salary math.
+ * Both EarningsTracker and StatisticsModal call this so the numbers they
+ * show can never drift apart from one another.
  */
-function EarningsTracker({ dashboard, isOnline }) {
-  const [showAchievementDetail, setShowAchievementDetail] = useState(false);
-
-  // ── Pull aggregates from dashboard (with safe defaults) ──────────────────
+function computeEarnings(dashboard) {
   const monthlyStd       = dashboard?.monthly_standard_rides  ?? 0;
   const monthlyKms       = dashboard?.monthly_special_kms     ?? 0;
   const todayStd         = dashboard?.today_standard_rides    ?? 0;
   const todayKms         = dashboard?.today_special_kms       ?? 0;
   const cycleDaysElapsed = dashboard?.cycle_days_elapsed      ?? 1;
 
-  // ── Salary calculation (the Earnings Engine) ─────────────────────────────
   // Monthly
   const monthlyBaseEarnings      = monthlyStd * BASE_TRIP_VALUE;
   const monthlyKmEarnings        = monthlyKms * SPECIAL_KM_RATE;
@@ -1561,12 +1649,10 @@ function EarningsTracker({ dashboard, isOnline }) {
   const dailyKmEarnings    = todayKms * SPECIAL_KM_RATE;
   const dailyTotal         = dailyBaseEarnings + dailyKmEarnings;
 
-  // ── Cumulative Achievement Logic ──────────────────────────────────────────
-  const achievement      = monthlyTotal - MONTHLY_TARGET_SALARY;
-
+  // Achievement vs monthly target
+  const achievement = monthlyTotal - MONTHLY_TARGET_SALARY;
   let achievementFormatted = '₹0';
   let achievementClass     = '';
-  
   if (achievement < 0) {
     achievementFormatted = `-₹${Math.abs(Math.round(achievement)).toLocaleString('en-IN')}`;
     achievementClass     = ' et-deficit';
@@ -1575,15 +1661,72 @@ function EarningsTracker({ dashboard, isOnline }) {
     achievementClass     = ' et-surplus';
   }
 
-  // ── Progress ratios ───────────────────────────────────────────────────────
+  // Progress ratios + state
   const dailyPct   = DAILY_TARGET_SALARY   > 0 ? dailyTotal   / DAILY_TARGET_SALARY   : 0;
   const monthlyPct = MONTHLY_TARGET_SALARY > 0 ? monthlyTotal / MONTHLY_TARGET_SALARY : 0;
-
-  // ── State classes ─────────────────────────────────────────────────────────
   const dailyState   = getEarningsState(dailyPct);
   const monthlyState = getMonthlyEarningsState(monthlyTotal);
   const isGoldMonth  = monthlyPct >= 1;
   const isDailyGold  = dailyPct >= 1;
+
+  // Bonus countdown
+  const tripsUntilBonus = MONTHLY_TARGET_TRIPS - monthlyStd;
+  const showBonusAlert  = tripsUntilBonus > 0 && tripsUntilBonus <= 20;
+
+  // ── Pace: run-rate projected across the cycle's WORKING days only ────────
+  // Weekends earn nothing (see Attendance.calculate_salary on the backend —
+  // Sat/Sun is always 'Holiday', salary 0), so averaging over every calendar
+  // day understates the real daily rate, and projecting across all 30
+  // calendar days overcounts days that were never going to earn anything.
+  // cycle_start/cycle_end come straight from the backend's cycle-boundary
+  // function so this can't drift from the authoritative range.
+  const cycleStart = dashboard?.cycle_start;
+  const cycleEnd   = dashboard?.cycle_end;
+
+  let dailyAverage = 0;
+  let projectedTotal = 0;
+  let cycleWorkingDaysTotal = 0;
+  let cycleWorkingDaysElapsed = 0;
+
+  if (cycleStart && cycleEnd) {
+    const todayISO = new Date().toLocaleDateString('en-CA');
+    const elapsedThrough = todayISO < cycleEnd ? todayISO : cycleEnd;
+    cycleWorkingDaysTotal   = countWeekdays(cycleStart, cycleEnd);
+    cycleWorkingDaysElapsed = Math.max(1, countWeekdays(cycleStart, elapsedThrough));
+    dailyAverage   = monthlyTotal / cycleWorkingDaysElapsed;
+    projectedTotal = dailyAverage * cycleWorkingDaysTotal;
+  } else {
+    // Fallback for a stale cached dashboard payload predating cycle_start/cycle_end
+    dailyAverage   = cycleDaysElapsed > 0 ? monthlyTotal / cycleDaysElapsed : 0;
+    projectedTotal = dailyAverage * CYCLE_LENGTH_DAYS;
+  }
+
+  return {
+    monthlyStd, monthlyKms, todayStd, todayKms, cycleDaysElapsed,
+    monthlyBaseEarnings, monthlyKmEarnings, monthlyIncentiveTrips, monthlyIncentiveEarnings, monthlyTotal,
+    dailyBaseEarnings, dailyKmEarnings, dailyTotal,
+    achievement, achievementFormatted, achievementClass,
+    dailyPct, monthlyPct, dailyState, monthlyState, isGoldMonth, isDailyGold,
+    tripsUntilBonus, showBonusAlert, dailyAverage, projectedTotal,
+    cycleWorkingDaysTotal, cycleWorkingDaysElapsed,
+  };
+}
+
+/**
+ * EarningsTracker — the gamified live earnings dashboard block.
+ * Props:
+ *   dashboard  — full dashboard API response object
+ *   isOnline   — boolean from useSync
+ */
+function EarningsTracker({ dashboard, isOnline }) {
+  const [showAchievementDetail, setShowAchievementDetail] = useState(false);
+
+  const {
+    monthlyBaseEarnings, monthlyKmEarnings, monthlyTotal,
+    dailyTotal, achievement, achievementFormatted, achievementClass,
+    dailyPct, monthlyPct, dailyState, monthlyState, isGoldMonth, isDailyGold,
+    tripsUntilBonus, showBonusAlert,
+  } = computeEarnings(dashboard);
 
   // ── One-Time Celebration Logic ────────────────────────────────────────────
   const prevIsGold = useRef(isGoldMonth);
@@ -1675,12 +1818,8 @@ function EarningsTracker({ dashboard, isOnline }) {
     prevIsDailyGold.current = isDailyGold;
   }, [isGoldMonth, isDailyGold]);
 
-  // ── Bonus countdown (show when within 20 trips of the 120-trip threshold) ─
-  const tripsUntilBonus = MONTHLY_TARGET_TRIPS - monthlyStd;
-  const showBonusAlert  = tripsUntilBonus > 0 && tripsUntilBonus <= 20;
-
   return (
-    <div className={`earnings-tracker${isGoldMonth ? ' et-gold-card' : ''}${dailyTotal < DAILY_TARGET_SALARY ? ' et-daily-deficit-border' : ''}`}>
+    <div className={`earnings-tracker ${monthlyState}${isGoldMonth ? ' et-gold-card' : ''}${dailyTotal < DAILY_TARGET_SALARY ? ' et-daily-deficit-border' : ''}`}>
       {/* ── Header ─────────────────────────────────────── */}
       <div className="et-header">
         <span className="et-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

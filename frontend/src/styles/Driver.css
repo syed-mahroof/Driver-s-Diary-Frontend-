@@ -11,12 +11,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.10);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
   position: sticky;
   top: 0;
   z-index: 10;
   gap: 0.5rem;
+}
+
+[data-theme="light"] .driver-header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
 }
 
 .dropdown-item svg {
@@ -329,8 +335,14 @@
 }
 
 .modal-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  /* Translucent version of the exact surface color (not a generic tint) —
+     keeps dense form content fully legible while still reading as glass
+     over the dimmed overlay behind it. Shared by every modal in both the
+     driver and admin dashboards. */
+  background: rgba(26, 31, 46, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   width: 100%;
   max-width: 500px;
@@ -339,6 +351,11 @@
   padding: 1.5rem 1.25rem 2rem;
   padding-bottom: calc(2rem + var(--safe-bottom, 0px));
   animation: slideUp 0.25s ease-out;
+}
+
+[data-theme="light"] .modal-card {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 @media (min-width: 480px) {
@@ -435,6 +452,327 @@
 }
 
 .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Neumorphic touch surfaces — ride & charge logger forms ─────────────
+   Mobile-first, one-handed-thumb design: raised dual-shadow surfaces
+   (dark anchor + light rim), inset "pressed" feedback on tap, 48px+
+   touch targets, and high-contrast labels for outdoor/sunlight glare.
+   Scoped to .driver-page so it never touches AdminDashboard's shared
+   .form-group / .modal-card / .btn-submit markup. */
+.driver-page {
+  --neu-dark: rgba(0, 0, 0, 0.55);
+  --neu-light: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .driver-page {
+  --neu-dark: rgba(148, 163, 184, 0.5);
+  --neu-light: rgba(255, 255, 255, 0.95);
+}
+
+.driver-page .modal-card .form-group label {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.driver-page .modal-card .form-group input,
+.driver-page .modal-card .form-group select,
+.driver-page .modal-card .form-group textarea {
+  min-height: 48px;
+  font-weight: 500;
+  box-shadow: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.driver-page .modal-card .form-group input:focus,
+.driver-page .modal-card .form-group select:focus,
+.driver-page .modal-card .form-group textarea:focus,
+.driver-page .modal-card .form-group input:active,
+.driver-page .modal-card .form-group select:active {
+  box-shadow: inset 3px 3px 8px var(--neu-dark), inset -3px -3px 8px var(--neu-light);
+  border-color: var(--accent);
+}
+
+/* Segmented toggle (trip type / seater) */
+.driver-page .trip-type-toggle {
+  height: 48px;
+  box-shadow: 3px 3px 8px var(--neu-dark), -3px -3px 8px var(--neu-light);
+}
+
+.driver-page .toggle-option.active {
+  box-shadow: inset 2px 2px 6px var(--neu-dark), inset -1px -1px 3px var(--neu-light);
+}
+
+/* Quick-action utility tiles */
+.driver-page .add-ride-btn,
+.driver-page .add-charge-btn {
+  box-shadow: 5px 5px 14px var(--neu-dark), -5px -5px 14px var(--neu-light);
+  transition: box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.driver-page .add-ride-btn:active,
+.driver-page .add-charge-btn:active {
+  box-shadow: inset 4px 4px 10px var(--neu-dark), inset -4px -4px 10px var(--neu-light);
+  transform: scale(0.97);
+}
+
+.driver-page .modal-card .btn-submit,
+.driver-page .modal-card .btn-cancel {
+  min-height: 48px;
+  box-shadow: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
+  transition: box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.driver-page .modal-card .btn-submit:active,
+.driver-page .modal-card .btn-cancel:active {
+  box-shadow: inset 3px 3px 8px var(--neu-dark), inset -3px -3px 8px var(--neu-light);
+  transform: scale(0.98);
+}
+
+.driver-page .modal-close {
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  box-shadow: 3px 3px 8px var(--neu-dark), -3px -3px 8px var(--neu-light);
+}
+
+.driver-page .modal-close:active {
+  box-shadow: inset 2px 2px 6px var(--neu-dark), inset -2px -2px 6px var(--neu-light);
+}
+
+/* ── Complete Statistics modal ───────────────────────────────────────── */
+.stats-trigger-btn {
+  width: 100%;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--accent);
+  color: #000;
+}
+
+.stats-modal {
+  max-width: 420px;
+}
+
+.stats-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stats-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0 0.1rem 1.25rem;
+}
+
+.stats-modal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(155deg, var(--bg-card2), var(--bg-card));
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.stats-modal-hero-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stats-modal-hero-total {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.stats-modal-progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.stats-modal-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-green), #fbbf24);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.stats-modal-hero-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.stats-modal-achievement {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+/* Reuses the earnings tracker's deficit/surplus glow tokens for the pill
+   background/box-shadow — only the text color needs its own rule here,
+   since that one's scoped to .et-pill-value in the tracker. */
+.stats-modal-achievement.et-deficit { color: #ef4444; }
+.stats-modal-achievement.et-surplus { color: #10b981; }
+
+.stats-modal-pills-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.stats-modal-pill {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: rgba(148, 163, 184, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.4rem;
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+}
+
+.stats-modal-pill-value {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.stats-modal-pill-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.stats-modal-pill-sub {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+.stats-modal-pill-gold .stats-modal-pill-value { color: #fbbf24; }
+
+.stats-modal-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: -0.5rem;
+}
+
+.stats-modal-pace-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.stats-modal-pace-tile {
+  flex: 1;
+  background: var(--bg-card2);
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.stats-modal-pace-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stats-modal-pace-label {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.stats-modal-attendance-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--bg-input);
+}
+
+.stats-modal-seg { height: 100%; transition: width 0.5s ease; }
+.stats-modal-seg.full    { background: var(--accent-green); }
+.stats-modal-seg.half    { background: #f59e0b; }
+.stats-modal-seg.leave   { background: var(--accent-red); }
+.stats-modal-seg.holiday { background: var(--accent-blue); }
+
+.stats-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: -0.75rem;
+}
+
+.stats-modal-stat {
+  background: var(--bg-card2);
+  border-radius: 12px;
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.stats-modal-stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.stats-modal-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.stats-modal-stat.green .stats-modal-stat-value { color: var(--accent-green); }
+.stats-modal-stat.amber .stats-modal-stat-value { color: #f59e0b; }
+.stats-modal-stat.red   .stats-modal-stat-value { color: var(--accent-red); }
+.stats-modal-stat.blue  .stats-modal-stat-value { color: var(--accent-blue); }
+
+.stats-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.stats-modal-footer strong { color: var(--text-primary); }
+
+.stats-modal-actions {
+  padding: 0 1.25rem 1.25rem;
+  grid-template-columns: 1fr;
+}
 
 /* Recent Rides */
 .recent-section { margin-bottom: 1.5rem; }
@@ -1021,9 +1359,12 @@
    EARNINGS TRACKER — Live Earnings & Target Gamification
    ═══════════════════════════════════════════════════════ */
 
+/* ── Glassmorphic surface ──────────────────────────────────────────────
+   Translucent tier tint (set per .et-* state below) + frosted blur +
+   a crisp, theme-aware white/black alpha border simulate a glass pane. */
 .earnings-tracker {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
@@ -1032,12 +1373,29 @@
   gap: 1rem;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Gold-state card gets a warm glow border */
+[data-theme="light"] .earnings-tracker {
+  border-color: rgba(15, 23, 42, 0.10);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Tier tint — background only; border stays a neutral frosted edge */
+.earnings-tracker.et-danger   { background: rgba(248, 113, 113, 0.10); }
+.earnings-tracker.et-warning  { background: rgba(234, 179, 8, 0.10); }
+.earnings-tracker.et-on-track { background: rgba(16, 185, 129, 0.10); }
+.earnings-tracker.et-gold     { background: rgba(251, 191, 36, 0.12); }
+
+/* Gold-state card gets a warm glow border on top of the gold tint */
 .earnings-tracker.et-gold-card {
   border-color: rgba(251, 191, 36, 0.45);
-  box-shadow: 0 0 28px rgba(251, 191, 36, 0.1);
+  box-shadow: 0 0 28px rgba(251, 191, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Subtle animated shimmer strip at top when Gold */
@@ -1221,11 +1579,17 @@
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
-  background: var(--bg-card2);
-  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.4rem;
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.et-pill-interactive:hover { transform: translateY(-1px); }
+.et-pill-interactive:active { transform: translateY(0) scale(0.97); }
 
 .et-pill-label {
   font-size: 0.6rem;
@@ -1294,28 +1658,57 @@
   padding: 0.25rem 0;
 }
 
-/* ── Mobile: stack charts on very small phones ── */
+/* ── Mobile: keep Today/This Month side by side on every phone size —
+   shrink the donuts and gap instead of ever collapsing to one column. ── */
 @media (max-width: 380px) {
   .et-charts-row {
-    grid-template-columns: 1fr;
+    gap: 0.6rem;
   }
 
   .et-donut-container {
-    width: 100px;
-    height: 100px;
+    width: 96px;
+    height: 96px;
   }
 
   .et-donut-svg {
-    width: 100px;
-    height: 100px;
+    width: 96px;
+    height: 96px;
   }
 
   .et-center-amount {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
+  }
+
+  .et-center-pct {
+    font-size: 0.58rem;
+  }
+
+  .et-label-title {
+    font-size: 0.65rem;
+  }
+
+  .et-label-target {
+    font-size: 0.58rem;
   }
 
   .et-breakdown {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 330px) {
+  .et-donut-container {
+    width: 84px;
+    height: 84px;
+  }
+
+  .et-donut-svg {
+    width: 84px;
+    height: 84px;
+  }
+
+  .et-center-amount {
+    font-size: 0.6rem;
   }
 }
 
@@ -1365,25 +1758,27 @@
   color: #b45309;
 }
 
-/* Achievement Tracker */
+/* Achievement Tracker — neon inner-glow matches each tier's accent color */
 @keyframes softPulse {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0%   { box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.25), 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70%  { box-shadow: inset 0 0 14px rgba(16, 185, 129, 0.4), 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.25), 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
 .et-deficit {
-  border-color: rgba(239, 68, 68, 0.3) !important;
-  background: rgba(239, 68, 68, 0.05) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.28), 0 0 10px rgba(239, 68, 68, 0.15) !important;
 }
 
 .et-deficit .et-pill-value {
   color: #ef4444 !important;
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
 }
 
 .et-surplus {
-  border-color: rgba(16, 185, 129, 0.4) !important;
-  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  background: rgba(16, 185, 129, 0.1) !important;
   animation: softPulse 2.5s infinite;
 }
 
@@ -1395,17 +1790,20 @@
 /* Light Theme Overrides */
 [data-theme="light"] .et-deficit {
   background: rgba(239, 68, 68, 0.08) !important;
-  border-color: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(220, 38, 38, 0.3) !important;
+  box-shadow: inset 0 0 10px rgba(220, 38, 38, 0.18), 0 0 10px rgba(220, 38, 38, 0.1) !important;
 }
 [data-theme="light"] .et-deficit .et-pill-value {
   color: #dc2626 !important;
+  text-shadow: none;
 }
 [data-theme="light"] .et-surplus {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(5, 150, 105, 0.35) !important;
 }
 [data-theme="light"] .et-surplus .et-pill-value {
   color: #059669 !important;
+  text-shadow: none;
 }
 /* -- Motivational Toast (One-time celebration) --------------------------- */
 .et-motivation-toast {
@@ -1495,3 +1893,27 @@
   color: #d97706;
   background: rgba(251, 191, 36, 0.25);
 }
+
+/* ── Light theme: amber/gold contrast fixes ──────────────────────────────
+   #fbbf24 and #f87171 are tuned to sit on dark backgrounds (bright text on
+   near-black). On a light card they read as washed-out/low-contrast, so
+   they need the same darker light-mode variant already used elsewhere in
+   this file (#dc2626 for the danger donut stroke, #b45309/#d97706 for the
+   gold badge/toast/bonus pill). These are the couple of spots that were
+   missed when those were added. */
+[data-theme="light"] .et-danger .et-center-amount { color: #dc2626; }
+[data-theme="light"] .et-gold .et-center-amount { color: #b45309; }
+[data-theme="light"] .et-gold .et-donut-fill { stroke: #d97706; }
+[data-theme="light"] .stats-modal-pill-gold .stats-modal-pill-value { color: #b45309; }
+[data-theme="light"] .stats-modal-stat.amber .stats-modal-stat-value { color: #b45309; }
+
+/* Same issue, different color: #6ee7b7 is a pale green built for dark
+   backgrounds, washes out on the light success/offline banner tints. */
+[data-theme="light"] .success-banner { color: var(--accent-green); }
+[data-theme="light"] .offline-banner { color: var(--accent-green); }
+
+/* Same base #10b981/#ef4444 dark-theme accent values used directly as text
+   elsewhere would look inconsistent next to the darker light-theme shade
+   every other green/red element on the page already uses. */
+[data-theme="light"] .stats-modal-achievement.et-deficit { color: var(--accent-red); }
+[data-theme="light"] .stats-modal-achievement.et-surplus { color: var(--accent-green); }

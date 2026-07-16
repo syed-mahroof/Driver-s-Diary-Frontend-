@@ -52,7 +52,7 @@ export default function Register() {
         <div className="login-logo">
           <img src="/logo.png" alt="Logo" className="logo-img" />
           <h1>Driver's Diary</h1>
-          <p className="header-subtext">By <span>HeadGreen!</span></p>
+          <p className="header-subtext">By <span>HeadGreen!<sup className="brand-tm">™</sup></span></p>
           <p className="logo-description">Driver Monitoring System</p>
           <h2 style={{ fontSize: '1.2rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>Create Account</h2>
         </div>

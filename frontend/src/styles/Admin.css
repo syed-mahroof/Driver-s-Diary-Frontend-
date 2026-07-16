@@ -9,11 +9,17 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 1rem 1.25rem;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.10);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+[data-theme="light"] .admin-header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
 }
 
 .admin-header .header-left {
@@ -60,9 +66,9 @@
 
 .filter-panel,
 .manifest-section {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(155deg, var(--bg-card2), var(--bg-card));
+  border: none;
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -144,7 +150,6 @@
   gap: 0.4rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px dashed var(--border);
 }
 
 .quick-ranges button {
@@ -175,23 +180,19 @@
   box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
 }
 
+/* ── Bento Grid: Quick Overview ──────────────────────────────────────────
+   No rigid borders/dividers — each metric is its own soft surface tile
+   (bg-card2/bg-card mix, 16px radius) laid out on an asymmetric grid.
+   Rides (hero) and Advance Paid (wide) get extra tracks for their
+   variable-length content; Drivers/Target/Charging stay compact squares. */
 .overview-stats-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 24px;
+  background: transparent;
+  border: none;
   margin-bottom: 2.5rem;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-
-.stats-layers {
-  display: flex;
-  flex-direction: column;
 }
 
 .stats-header {
-  padding: 1.25rem 2rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0 0.25rem 1rem;
 }
 
 .stats-header h3 {
@@ -202,21 +203,58 @@
   letter-spacing: 0.08em;
 }
 
-.stats-layer {
-  padding: 1.5rem 2rem;
+/* Content-driven stack — every tile's height comes from its own content,
+   never from a shared grid track, so nothing sits in an oversized card
+   with wasted empty space. */
+.stats-layers {
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.3s ease;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.stats-layer:last-child {
-  border-bottom: none;
+.stats-layer {
+  background: linear-gradient(155deg, var(--bg-card2), var(--bg-card));
+  border: none;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stats-layer:hover {
-  background: rgba(255, 255, 255, 0.02);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="light"] .stats-layer:hover {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* Rides row: icon+value fixed on the left, chips flow and wrap on the right —
+   the row's height always tracks however many chips exist, never more. */
+.rides-row {
+  flex-wrap: wrap;
+  row-gap: 1rem;
+}
+
+.rides-summary {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Drivers + Target Achieved — two independent tiles paired side by side */
+.duo-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.duo-item {
+  min-width: 0;
 }
 
 /* Layer Icon Boxes */
@@ -266,46 +304,6 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 0.1rem;
-}
-
-/* Specific Layer Adjustments */
-.rides-layer {
-  display: flex;
-  align-items: stretch; /* Allow divider to stretch */
-  padding: 0; /* Remove padding to handle sections correctly */
-}
-
-.rides-left-section {
-  padding: 1.75rem 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.rides-left-section::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 15%;
-  bottom: 15%;
-  width: 1px;
-  background: var(--border);
-}
-
-.rides-right-section {
-  flex: 1;
-  padding: 1.75rem 2rem;
-  display: flex;
-  align-items: center;
-}
-
-.layer-main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
 }
 
 .layer-large-value {
@@ -365,31 +363,6 @@
   font-size: 0.75rem;
 }
 
-/* Split Layer */
-.split-layer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 0;
-}
-
-.layer-half {
-  padding: 1.5rem 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  position: relative;
-}
-
-.layer-half:first-child::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 1px;
-  background: var(--border);
-}
-
 /* Colors */
 .blue { color: #3b82f6; }
 .purple { color: #a855f7; }
@@ -397,78 +370,31 @@
 .teal { color: #2dd4bf; }
 .amber { color: #f59e0b; }
 
-/* Responsive adjustments */
+/* Responsive adjustments — every tile is content-sized already, so mobile
+   just tightens padding/type instead of juggling grid spans. */
 @media (max-width: 900px) {
-  .rides-left-section {
-    padding: 1.25rem 1rem;
+  .stats-layer {
+    padding: 1.1rem 1.25rem;
     gap: 1rem;
-  }
-  .rides-right-section {
-    padding: 1.25rem 1rem;
   }
   .layer-large-value {
     font-size: 2rem;
   }
-  
-  /* Keep split-layer side-by-side but with less padding */
-  .layer-half {
-    padding: 1.25rem 1rem;
-    gap: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .rides-left-section {
-    padding: 1rem 0.75rem;
-    gap: 0.75rem;
-  }
-  .rides-right-section {
-    padding: 1rem 0.75rem;
-  }
-  .layer-large-value {
-    font-size: 1.75rem;
-  }
-  
-  /* Even smaller for very small phones */
-  .layer-half {
-    gap: 0.75rem;
-    padding: 1rem 0.75rem;
-  }
-  /* ... (rest of the mobile styles) ... */
-  .layer-icon-box {
-    width: 44px;
-    height: 44px;
-  }
-  .layer-icon-box svg {
-    width: 20px;
-    height: 20px;
-  }
-  .layer-value {
-    font-size: 1.35rem;
-  }
-  .layer-label {
-    font-size: 0.75rem;
-  }
 }
 
 @media (max-width: 640px) {
-  .overview-stats-container {
-    border-radius: 16px;
-    margin-bottom: 1.5rem;
-  }
   .stats-layer {
-    padding: 1.25rem 1rem;
-    gap: 1rem;
+    padding: 1rem 1.1rem;
+    gap: 0.85rem;
   }
-  .layer-half {
-    padding: 1.25rem 1rem;
-    gap: 1rem;
+  .duo-row {
+    gap: 0.75rem;
   }
   .layer-large-value {
-    font-size: 2.25rem;
+    font-size: 1.9rem;
   }
   .layer-value {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
   .layer-icon-box {
     width: 48px;
@@ -480,7 +406,27 @@
   }
 }
 
-/* End of Admin.css */
+@media (max-width: 380px) {
+  .duo-row {
+    grid-template-columns: 1fr;
+  }
+  .layer-icon-box {
+    width: 44px;
+    height: 44px;
+  }
+  .layer-icon-box svg {
+    width: 20px;
+    height: 20px;
+  }
+  .layer-value {
+    font-size: 1.3rem;
+  }
+  .layer-label {
+    font-size: 0.75rem;
+  }
+}
+
+/* End of Admin.css overview */
 
 
 
@@ -490,7 +436,6 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .table-header h3 {
@@ -532,8 +477,8 @@
 .manifest-day {
   background: var(--bg-card2);
   color: var(--text-primary);
-  border-radius: 12px;
-  border: 1px solid var(--border);
+  border-radius: 16px;
+  border: none;
   margin-bottom: 1rem;
   overflow: hidden;
   transition: all 0.2s ease;
@@ -1670,5 +1615,41 @@
   padding-top: 0.35rem;
   margin-top: 0.15rem;
 }
+
+/* ── Light theme: amber/gold/teal contrast fixes ─────────────────────────
+   Unlike blue/purple/green/red (which are CSS vars that already swap to a
+   darker shade in light mode), every amber/gold/teal accent in this file
+   is a flat hex tuned to sit on a dark card — #fbbf24, #f59e0b and #2dd4bf
+   all wash out badly against a white/light surface. None of them had a
+   light-theme override anywhere in this file. Darkened variants below
+   match the #b45309/#d97706 tokens already established for this exact
+   problem in Driver.css, so the two dashboards stay visually consistent. */
+[data-theme="light"] .yellow { color: #b45309; }
+[data-theme="light"] .teal { color: #0d9488; }
+[data-theme="light"] .amber { color: #b45309; }
+
+[data-theme="light"] .layer-icon-box.yellow-bg { color: #b45309; background: rgba(180, 83, 9, 0.10); }
+[data-theme="light"] .layer-icon-box.teal { color: #0d9488; background: rgba(13, 148, 136, 0.10); }
+[data-theme="light"] .layer-icon-box.amber { color: #b45309; background: rgba(180, 83, 9, 0.10); }
+
+[data-theme="light"] .attendance-badge.half { color: #b45309; }
+[data-theme="light"] .advance-section-title.pending-title { color: #b45309; }
+[data-theme="light"] .pulse-dot { background: #b45309; }
+[data-theme="light"] .advance-card.pending { border-left-color: #b45309; }
+[data-theme="light"] .status-tag.pending { color: #b45309; }
+[data-theme="light"] .charging-amount { color: #b45309; }
+[data-theme="light"] .btn-export { color: var(--accent-green); }
+
+/* Same base #10b981/#ef4444/#94a3b8 dark-theme values used directly as text
+   elsewhere would look inconsistent next to the darker/theme-aware shade
+   every other green/red/neutral element on the page already uses. */
+[data-theme="light"] .company-stat-chip .chip-km { color: var(--accent-blue); }
+[data-theme="light"] .attendance-badge.full { color: var(--accent-green); }
+[data-theme="light"] .attendance-badge.leave { color: var(--accent-red); }
+[data-theme="light"] .attendance-badge.holiday { color: var(--text-secondary); }
+[data-theme="light"] .btn-paid { color: var(--accent-green); }
+[data-theme="light"] .btn-reject { color: var(--accent-red); }
+[data-theme="light"] .status-tag.paid { color: var(--accent-green); }
+[data-theme="light"] .status-tag.rejected { color: var(--accent-red); }
 
 

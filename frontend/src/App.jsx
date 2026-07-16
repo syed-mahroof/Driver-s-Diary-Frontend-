@@ -12,7 +12,11 @@ import './styles/global.css';
 
 export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const [showSplash, setShowSplash] = useState(true);
+  // Only ever show the splash once per browser session. Without this, a PWA
+  // reload triggered by the app being backgrounded/foregrounded (or a service
+  // worker update) remounts <App/> and replays the splash mid-session, which
+  // reads as "it shows twice".
+  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('hg-splash-shown'));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -25,7 +29,14 @@ export default function App() {
 
   return (
     <AuthProvider>
-      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      {showSplash && (
+        <SplashScreen
+          onFinish={() => {
+            sessionStorage.setItem('hg-splash-shown', 'true');
+            setShowSplash(false);
+          }}
+        />
+      )}
       <BrowserRouter>
         <InstallPrompt />
         <Routes>

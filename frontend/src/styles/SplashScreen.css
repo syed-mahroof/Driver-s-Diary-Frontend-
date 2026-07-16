@@ -44,6 +44,20 @@
   animation-delay: -5s;
 }
 
+/* Third, smaller ambient blob for a slightly richer premium wash */
+.splash-logo-container::before {
+  content: '';
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  filter: blur(70px);
+  opacity: 0.1;
+  z-index: -1;
+  animation: blobFloat 12s infinite alternate-reverse ease-in-out;
+}
+
 @keyframes blobFloat {
   from { transform: translate(0, 0) scale(1); }
   to { transform: translate(30px, 40px) scale(1.1); }
@@ -67,11 +81,18 @@
   position: relative;
   padding: 12px;
   background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 48px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-  animation: logoWrapperEntrance 1.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation: logoWrapperEntrance 1.2s cubic-bezier(0.23, 1, 0.32, 1) both,
+             splashGlowPulse 3.2s ease-in-out 1.2s infinite;
+}
+
+@keyframes splashGlowPulse {
+  0%, 100% { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(16, 185, 129, 0.22); }
+  50%      { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 36px 6px rgba(16, 185, 129, 0.22); }
 }
 
 .splash-main-logo {
@@ -141,6 +162,16 @@
   background: linear-gradient(to bottom, #ffffff, #94a3b8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.splash-tm {
+  font-size: 0.5em;
+  vertical-align: super;
+  margin-left: 2px;
+  font-weight: 700;
+  background: none;
+  -webkit-text-fill-color: var(--text-secondary);
+  opacity: 0.85;
 }
 
 @keyframes brandingEntrance {
