@@ -21,6 +21,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showAdvancePanel, setShowAdvancePanel] = useState(false);
+  const [showAdvancePaidModal, setShowAdvancePaidModal] = useState(false);
   const [showChargesModal, setShowChargesModal] = useState(false);
   const [showAddChargeModal, setShowAddChargeModal] = useState(false);
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
@@ -343,8 +344,11 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 </div>
               </div>
 
-              {/* Advance Salary Paid */}
-              <div className="stats-layer">
+              {/* Advance Salary Paid (clickable) */}
+              <div
+                className="stats-layer interactive-layer"
+                onClick={() => setShowAdvancePaidModal(true)}
+              >
                 <div className="layer-icon-box teal">
                   <WalletIcon />
                 </div>
@@ -356,6 +360,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   {stats.advance_paid_drivers?.length > 0 && (
                     <div className="layer-subtitle">({stats.advance_paid_drivers.join(', ')})</div>
                   )}
+                  <div className="clickable-hint">Click to view breakdown</div>
                 </div>
               </div>
 
@@ -436,6 +441,17 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 }
               }}
               onClose={() => setShowAdvancePanel(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showAdvancePaidModal && (
+        <div className="modal-overlay" onClick={() => setShowAdvancePaidModal(false)}>
+          <div className="modal-card advance-modal-card" onClick={e => e.stopPropagation()}>
+            <AdvancePaidDetailsPanel
+              details={stats?.advance_details || []}
+              onClose={() => setShowAdvancePaidModal(false)}
             />
           </div>
         </div>
@@ -992,6 +1008,37 @@ function AdvanceRequestsPanel({ requests, onUpdate, onClose }) {
             ))}
           </div>
         </>
+      )}
+    </section>
+  );
+}
+
+function AdvancePaidDetailsPanel({ details, onClose }) {
+  return (
+    <section className="advance-panel">
+      <div className="advance-panel-header">
+        <h3>Advance Salary Paid</h3>
+        <button className="modal-close" onClick={onClose}>&times;</button>
+      </div>
+
+      {details.length === 0 ? (
+        <div className="empty-state">No advance salary paid for the selected period.</div>
+      ) : (
+        <div className="advance-list">
+          {details.map(item => (
+            <div key={item.id} className="advance-card paid">
+              <div className="advance-card-top">
+                <strong>{item.driver_name}</strong>
+                <span className="advance-amount">₹{Number(item.amount).toLocaleString('en-IN')}</span>
+              </div>
+              {item.reason && <div className="advance-reason">{item.reason}</div>}
+              <div className="advance-card-meta">
+                <span>{formatDate(item.date)}</span>
+                <span className="status-tag paid">Paid</span>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );

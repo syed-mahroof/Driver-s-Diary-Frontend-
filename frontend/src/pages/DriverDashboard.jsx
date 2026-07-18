@@ -1407,8 +1407,7 @@ function StatisticsModal({ dashboard, onClose }) {
   const {
     monthlyStd, monthlyKms,
     monthlyBaseEarnings, monthlyKmEarnings, monthlyIncentiveTrips, monthlyIncentiveEarnings, monthlyTotal,
-    achievementFormatted, achievementClass, monthlyPct, dailyAverage, projectedTotal,
-    cycleWorkingDaysTotal, cycleWorkingDaysElapsed,
+    achievementFormatted, achievementClass, monthlyPct, dailyAverage, projectedTotal, avgTripsPerDay,
   } = computeEarnings(dashboard);
 
   const {
@@ -1418,6 +1417,7 @@ function StatisticsModal({ dashboard, onClose }) {
     monthly_holidays: holidays = 0,
     default_vehicle_number: vehicleNumber = '',
     default_seater: seater = 4,
+    cycle_advance_paid: cycleAdvancePaid = 0,
   } = dashboard;
 
   const attendanceTotal = fullDays + halfDays + leaves + holidays;
@@ -1468,10 +1468,12 @@ function StatisticsModal({ dashboard, onClose }) {
           </div>
 
           {/* Pace / forecast — a genuinely new insight, not shown elsewhere */}
-          <div className="stats-modal-section-title">
-            Pace &middot; {cycleWorkingDaysElapsed} of ~{cycleWorkingDaysTotal} working days (weekends excluded)
-          </div>
+          <div className="stats-modal-section-title">Pace &amp; Forecast</div>
           <div className="stats-modal-pace-row">
+            <div className="stats-modal-pace-tile">
+              <span className="stats-modal-pace-value">{avgTripsPerDay.toFixed(1)}</span>
+              <span className="stats-modal-pace-label">Avg Trips / Day</span>
+            </div>
             <div className="stats-modal-pace-tile">
               <span className="stats-modal-pace-value">{fmt(dailyAverage)}</span>
               <span className="stats-modal-pace-label">Daily Average</span>
@@ -1479,6 +1481,15 @@ function StatisticsModal({ dashboard, onClose }) {
             <div className="stats-modal-pace-tile">
               <span className="stats-modal-pace-value">{fmt(projectedTotal)}</span>
               <span className="stats-modal-pace-label">Projected Cycle Total</span>
+            </div>
+          </div>
+
+          {/* Advance salary already drawn against this cycle's earnings */}
+          <div className="stats-modal-section-title">Advance Salary</div>
+          <div className="stats-modal-pace-row">
+            <div className="stats-modal-pace-tile">
+              <span className="stats-modal-pace-value">{fmt(cycleAdvancePaid)}</span>
+              <span className="stats-modal-pace-label">Collected This Cycle</span>
             </div>
           </div>
 
@@ -1687,6 +1698,7 @@ function computeEarnings(dashboard) {
   let projectedTotal = 0;
   let cycleWorkingDaysTotal = 0;
   let cycleWorkingDaysElapsed = 0;
+  let paceDaysElapsed = 0;
 
   if (cycleStart && cycleEnd) {
     const todayISO = new Date().toLocaleDateString('en-CA');
@@ -1695,11 +1707,17 @@ function computeEarnings(dashboard) {
     cycleWorkingDaysElapsed = Math.max(1, countWeekdays(cycleStart, elapsedThrough));
     dailyAverage   = monthlyTotal / cycleWorkingDaysElapsed;
     projectedTotal = dailyAverage * cycleWorkingDaysTotal;
+    paceDaysElapsed = cycleWorkingDaysElapsed;
   } else {
     // Fallback for a stale cached dashboard payload predating cycle_start/cycle_end
     dailyAverage   = cycleDaysElapsed > 0 ? monthlyTotal / cycleDaysElapsed : 0;
     projectedTotal = dailyAverage * CYCLE_LENGTH_DAYS;
+    paceDaysElapsed = cycleDaysElapsed;
   }
+
+  // Trips banked per working day so far this cycle — same denominator as
+  // dailyAverage above, so the two pace figures never disagree with each other.
+  const avgTripsPerDay = paceDaysElapsed > 0 ? monthlyStd / paceDaysElapsed : 0;
 
   return {
     monthlyStd, monthlyKms, todayStd, todayKms, cycleDaysElapsed,
@@ -1707,7 +1725,7 @@ function computeEarnings(dashboard) {
     dailyBaseEarnings, dailyKmEarnings, dailyTotal,
     achievement, achievementFormatted, achievementClass,
     dailyPct, monthlyPct, dailyState, monthlyState, isGoldMonth, isDailyGold,
-    tripsUntilBonus, showBonusAlert, dailyAverage, projectedTotal,
+    tripsUntilBonus, showBonusAlert, dailyAverage, projectedTotal, avgTripsPerDay,
     cycleWorkingDaysTotal, cycleWorkingDaysElapsed,
   };
 }

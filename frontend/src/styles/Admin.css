@@ -408,7 +408,11 @@
 
 @media (max-width: 380px) {
   .duo-row {
-    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .duo-item {
+    padding: 0.85rem 0.9rem;
+    gap: 0.6rem;
   }
   .layer-icon-box {
     width: 44px;
