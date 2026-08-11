@@ -106,23 +106,43 @@ function drawPageFooter(doc, pageWidth, pageHeight, companyName) {
   );
 }
 
+function fitCenteredTitle(doc, text, maxWidth, maxFontSize = 22, minFontSize = 11, maxLines = 2) {
+  doc.setFont('helvetica', 'bold');
+  let fontSize = maxFontSize;
+
+  while (fontSize >= minFontSize) {
+    doc.setFontSize(fontSize);
+    const lines = doc.splitTextToSize(text, maxWidth);
+    if (lines.length <= maxLines) {
+      return { lines, fontSize, lineHeight: fontSize * 0.42 };
+    }
+    fontSize -= 1;
+  }
+
+  doc.setFontSize(minFontSize);
+  return {
+    lines: doc.splitTextToSize(text, maxWidth).slice(0, maxLines),
+    fontSize: minFontSize,
+    lineHeight: minFontSize * 0.42,
+  };
+}
+
 function drawReportHeader(doc, pageWidth, { companyName, periodLabel, driverLabel, logoData }) {
-  const headerHeight = 46;
+  const headerHeight = 58;
   doc.setFillColor(...BRAND_BLUE);
   doc.rect(0, 0, pageWidth, headerHeight, 'F');
 
-  // White brand panel so the full logo (icon + HeadGreen wordmark) stays readable.
-  const brandPanelWidth = 58;
-  const brandPanelHeight = 34;
+  const brandPanelWidth = 52;
+  const brandPanelHeight = 28;
   const brandPanelX = MARGIN;
-  const brandPanelY = 6;
+  const brandPanelY = 7;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(230, 235, 240);
   doc.setLineWidth(0.3);
   doc.roundedRect(brandPanelX, brandPanelY, brandPanelWidth, brandPanelHeight, 2.5, 2.5, 'FD');
 
   if (logoData) {
-    const innerPadding = 4;
+    const innerPadding = 3;
     const maxWidth = brandPanelWidth - innerPadding * 2;
     const maxHeight = brandPanelHeight - innerPadding * 2;
     let finalWidth = maxWidth;
@@ -136,36 +156,55 @@ function drawReportHeader(doc, pageWidth, { companyName, periodLabel, driverLabe
     doc.addImage(logoData.dataURL, 'PNG', logoX, logoY, finalWidth, finalHeight);
   } else {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setTextColor(...BRAND_BLUE);
-    doc.text('HeadGreen!', brandPanelX + brandPanelWidth / 2, brandPanelY + 20, { align: 'center' });
+    doc.text('HeadGreen!', brandPanelX + brandPanelWidth / 2, brandPanelY + 18, { align: 'center' });
   }
 
-  const brandTextX = brandPanelX + brandPanelWidth + 8;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(255, 255, 255);
-  doc.text("Driver's Diary", brandTextX, 18);
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.setTextColor(210);
-  doc.text('Premium Cab Services by HeadGreen!', brandTextX, 24);
+  doc.setTextColor(255, 255, 255);
+  doc.text("Driver's Diary", brandPanelX, brandPanelY + brandPanelHeight + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(200);
+  doc.text('By HeadGreen!', brandPanelX, brandPanelY + brandPanelHeight + 9);
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(235);
+  doc.text(periodLabel, pageWidth - MARGIN, 11, { align: 'right' });
+  doc.text(`Driver: ${driverLabel}`, pageWidth - MARGIN, 16, { align: 'right' });
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, pageWidth - MARGIN, 21, { align: 'right' });
+
+  const horizontalInset = 76;
+  const titleMaxWidth = pageWidth - horizontalInset * 2;
+  const { lines: titleLines, fontSize, lineHeight } = fitCenteredTitle(
+    doc,
+    companyName,
+    titleMaxWidth,
+    22,
+    11,
+    2,
+  );
+
+  const titleBlockHeight = titleLines.length * lineHeight;
+  const subtitleY = 38 + titleBlockHeight + 3;
+  let titleY = 38;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(24);
+  doc.setFontSize(fontSize);
   doc.setTextColor(255, 255, 255);
-  doc.text(companyName, pageWidth / 2, 20, { align: 'center' });
+  titleLines.forEach((line, index) => {
+    doc.text(line, pageWidth / 2, titleY + index * lineHeight, {
+      align: 'center',
+      maxWidth: titleMaxWidth,
+    });
+  });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(210);
-  doc.text('Company Ride Report', pageWidth / 2, 28, { align: 'center' });
-
-  doc.setFontSize(9);
-  doc.setTextColor(235);
-  doc.text(periodLabel, pageWidth - MARGIN, 12, { align: 'right' });
-  doc.text(`Driver: ${driverLabel}`, pageWidth - MARGIN, 18, { align: 'right' });
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, pageWidth - MARGIN, 24, { align: 'right' });
+  doc.text('Company Ride Report', pageWidth / 2, subtitleY, { align: 'center' });
 
   doc.setDrawColor(...BRAND_GREEN);
   doc.setLineWidth(0.8);
@@ -284,7 +323,7 @@ export async function generateAdminPdfReport({
     head: [['Date', 'No', 'Driver', 'P/D', 'Time', 'Route', 'Vehicle', 'Km']],
     body: tableData,
     theme: 'striped',
-    margin: { left: MARGIN, right: MARGIN, top: 56, bottom: 16 },
+    margin: { left: MARGIN, right: MARGIN, top: 62, bottom: 16 },
     headStyles: {
       fillColor: BRAND_BLUE,
       fontStyle: 'bold',
