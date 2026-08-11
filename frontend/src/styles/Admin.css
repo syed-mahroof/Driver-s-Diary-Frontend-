@@ -87,7 +87,7 @@
 
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   align-items: end;
 }
@@ -96,7 +96,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
-  grid-column: span 2;
+  grid-column: 1 / -1;
 }
 
 .btn-filter,
@@ -794,10 +794,10 @@
     display: flex;
   }
   .filter-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .filter-actions {
-    grid-column: span 2;
+    grid-column: 1 / -1;
   }
 }
 
@@ -831,7 +831,7 @@
   }
 
   .filter-actions {
-    grid-column: span 2;
+    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
@@ -847,6 +847,7 @@
   .btn-export-pdf {
     min-height: 44px;
     height: 44px;
+    width: 100%;
     padding-inline: 0.5rem;
   }
 
@@ -1156,6 +1157,42 @@
   margin-top: 0.5rem;
 }
 
+.modal-actions.monthly-export-actions {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.modal-actions.monthly-export-actions .btn-cancel {
+  grid-column: 1 / -1;
+}
+
+.modal-actions.monthly-export-actions .btn-submit,
+.modal-actions.monthly-export-actions .monthly-pdf-btn {
+  width: 100%;
+  min-height: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.5rem;
+}
+
+.modal-actions.monthly-export-actions .monthly-pdf-btn {
+  background: rgba(59,130,246,0.12);
+  color: #93c5fd;
+  border: 1px solid rgba(59,130,246,0.35);
+  cursor: pointer;
+}
+
+.modal-actions.monthly-export-actions .monthly-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-cancel {
   padding: 0.875rem;
   background: transparent;
@@ -1194,6 +1231,12 @@
   }
   .modal-actions {
     grid-template-columns: 1fr;
+  }
+  .modal-actions.monthly-export-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modal-actions.monthly-export-actions .btn-cancel {
+    grid-column: 1 / -1;
   }
   .modal-header h3 {
     font-size: 1.05rem;
@@ -1452,6 +1495,10 @@
   .filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .filter-actions {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1469,7 +1516,7 @@
   }
 
   .filter-actions {
-    grid-column: span 1;
+    grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
@@ -1479,6 +1526,24 @@
 
   .btn-filter {
     grid-column: 1 / -1;
+  }
+
+  .btn-export,
+  .btn-export-pdf {
+    width: 100%;
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .modal-actions.monthly-export-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-actions.monthly-export-actions .btn-submit,
+  .modal-actions.monthly-export-actions .monthly-pdf-btn {
+    min-height: 48px;
+    height: 48px;
+    font-size: 0.85rem;
   }
 
   .quick-ranges {
@@ -1694,7 +1759,8 @@
 [data-theme="light"] .status-tag.pending { color: #b45309; }
 [data-theme="light"] .charging-amount { color: #b45309; }
 [data-theme="light"] .btn-export { color: var(--accent-green); }
-[data-theme="light"] .btn-export-pdf { color: var(--accent-blue); }
+[data-theme="light"] .btn-export-pdf,
+[data-theme="light"] .monthly-pdf-btn { color: var(--accent-blue); }
 
 /* Same base #10b981/#ef4444/#94a3b8 dark-theme values used directly as text
    elsewhere would look inconsistent next to the darker/theme-aware shade

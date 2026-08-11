@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { adminAPI } from '../utils/api';
-import { generateAdminPdfReport } from '../utils/generateAdminPdfReport';
+import { generateAdminPdfReport, generateMonthlyCompanyPdfReport } from '../utils/generateAdminPdfReport';
 import '../styles/Admin.css';
 
 export default function AdminDashboard({ toggleTheme, theme }) {
@@ -67,6 +67,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
     start_date: today,
     end_date: today,
     driver_id: '',
+    vehicle_number: '',
     company_id: '',
   });
 
@@ -133,7 +134,20 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ride_manifest_${filters.start_date}_${filters.end_date}.xlsx`;
+      const parts = ['ride_manifest'];
+      if (filters.company_id) {
+        const company = companies.find((c) => String(c.id) === String(filters.company_id));
+        if (company?.name) parts.push(company.name.replace(/[^\w\-]+/g, '_'));
+      }
+      if (filters.driver_id) {
+        const driver = drivers.find((d) => String(d.id) === String(filters.driver_id));
+        if (driver?.name) parts.push(driver.name.replace(/[^\w\-]+/g, '_'));
+      }
+      if (filters.vehicle_number) {
+        parts.push(String(filters.vehicle_number).replace(/[^\w\-]+/g, '_'));
+      }
+      parts.push(filters.start_date, 'to', filters.end_date);
+      a.download = `${parts.join('_')}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -156,11 +170,6 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   };
 
   const handleExportPdf = async () => {
-    if (!filters.company_id) {
-      alert('Please select a company before exporting the PDF report.');
-      return;
-    }
-
     setExportingPdf(true);
     try {
       const params = Object.fromEntries(
@@ -270,6 +279,17 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   <option key={driver.id} value={driver.id}>{driver.name}</option>
                 ))}
                 <option value="ADD_NEW_DRIVER" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>+ Add New Driver</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Vehicle</label>
+              <select name="vehicle_number" value={filters.vehicle_number} onChange={handleFilterChange}>
+                <option value="">All Vehicles</option>
+                {vehicles.map(vehicle => (
+                  <option key={vehicle.id} value={vehicle.number}>
+                    {vehicle.number}{vehicle.seater ? ` (${vehicle.seater} Seater)` : ''}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="form-group">
@@ -558,6 +578,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       {showMonthlyReportModal && (
         <MonthlyReportModal
           onClose={() => setShowMonthlyReportModal(false)}
+          companies={companies}
         />
       )}
     </div>
@@ -1132,7 +1153,7 @@ const FileTextIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
 );
 
-function MonthlyReportModal({ onClose }) {
+function MonthlyReportModal({ onClose, companies = [] }) {
   const currentYear = new Date().getFullYear();
   
   // Set default to last month
@@ -1149,6 +1170,7 @@ function MonthlyReportModal({ onClose }) {
   const [month, setMonth] = useState(prevDate.month);
   const [year, setYear] = useState(prevDate.year);
   const [loading, setLoading] = useState(false);
+  const [loadingPdf, setLoadingPdf] = useState(false);
 
   const months = [
     { value: 1, label: 'January' },
@@ -1167,8 +1189,14 @@ function MonthlyReportModal({ onClose }) {
 
   const years = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const getMonthRange = () => {
+    const start = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    return { start, end };
+  };
+
+  const handleExcelExport = async () => {
     setLoading(true);
     try {
       const response = await adminAPI.exportMonthlyReport(month, year);
@@ -1200,6 +1228,33 @@ function MonthlyReportModal({ onClose }) {
     }
   };
 
+  const handlePdfExport = async () => {
+    setLoadingPdf(true);
+    try {
+      const { start, end } = getMonthRange();
+      const params = { start_date: start, end_date: end };
+      const [reportsRes, statsRes] = await Promise.all([
+        adminAPI.getReports(params),
+        adminAPI.getDashboard(params),
+      ]);
+      await generateMonthlyCompanyPdfReport({
+        month: Number(month),
+        year: Number(year),
+        companies,
+        reports: reportsRes.data,
+        stats: statsRes.data,
+      });
+      onClose();
+    } catch (err) {
+      console.error('Monthly PDF export failed', err);
+      alert(`PDF export failed: ${err.message || 'Unable to generate report'}`);
+    } finally {
+      setLoadingPdf(false);
+    }
+  };
+
+  const busy = loading || loadingPdf;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={e => e.stopPropagation()}>
@@ -1207,10 +1262,10 @@ function MonthlyReportModal({ onClose }) {
           <h3>Monthly Company Report</h3>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
-        <form onSubmit={handleSubmit} className="modal-form">
+        <div className="modal-form">
           <div className="form-group">
             <label>Select Month</label>
-            <select value={month} onChange={e => setMonth(Number(e.target.value))}>
+            <select value={month} onChange={e => setMonth(Number(e.target.value))} disabled={busy}>
               {months.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
@@ -1218,19 +1273,22 @@ function MonthlyReportModal({ onClose }) {
           </div>
           <div className="form-group">
             <label>Select Year</label>
-            <select value={year} onChange={e => setYear(Number(e.target.value))}>
+            <select value={year} onChange={e => setYear(Number(e.target.value))} disabled={busy}>
               {years.map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-submit" disabled={loading}>
+          <div className="modal-actions monthly-export-actions">
+            <button type="button" className="btn-cancel" onClick={onClose} disabled={busy}>Cancel</button>
+            <button type="button" className="btn-submit" onClick={handleExcelExport} disabled={busy}>
               {loading ? 'Exporting...' : 'Export Excel'}
             </button>
+            <button type="button" className="btn-export-pdf monthly-pdf-btn" onClick={handlePdfExport} disabled={busy}>
+              {loadingPdf ? 'Generating...' : 'Export PDF'}
+            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
