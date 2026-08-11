@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { adminAPI } from '../utils/api';
+import { generateAdminPdfReport } from '../utils/generateAdminPdfReport';
 import '../styles/Admin.css';
 
 export default function AdminDashboard({ toggleTheme, theme }) {
@@ -15,6 +16,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Modals state
   const [showDriverModal, setShowDriverModal] = useState(false);
@@ -137,10 +139,49 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      const serverMessage = err.response?.data?.error || err.response?.data?.detail;
+      let serverMessage = err.response?.data?.error || err.response?.data?.detail;
+      if (!serverMessage && err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          serverMessage = parsed.error || parsed.detail;
+        } catch {
+          // Ignore parse errors and fall back to generic message.
+        }
+      }
       alert(`Export failed: ${serverMessage || err.message}`);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!filters.company_id) {
+      alert('Please select a company before exporting the PDF report.');
+      return;
+    }
+
+    setExportingPdf(true);
+    try {
+      const params = Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== '')
+      );
+      const [reportsRes, statsRes] = await Promise.all([
+        adminAPI.getReports(params),
+        adminAPI.getDashboard(params),
+      ]);
+      await generateAdminPdfReport({
+        filters,
+        companies,
+        drivers,
+        reports: reportsRes.data,
+        stats: statsRes.data,
+      });
+    } catch (err) {
+      console.error('PDF export failed', err);
+      alert(`PDF export failed: ${err.message || 'Unable to generate report'}`);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -243,8 +284,11 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             </div>
             <div className="filter-actions">
               <button className="btn-filter" onClick={fetchAll}>Apply</button>
-              <button className="btn-export" onClick={handleExport} disabled={exporting}>
+              <button className="btn-export" onClick={handleExport} disabled={exporting || exportingPdf}>
                 {exporting ? 'Exporting...' : 'Export Excel'}
+              </button>
+              <button className="btn-export-pdf" onClick={handleExportPdf} disabled={exporting || exportingPdf}>
+                {exportingPdf ? 'Generating...' : 'Export PDF'}
               </button>
             </div>
           </div>

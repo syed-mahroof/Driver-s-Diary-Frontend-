@@ -94,13 +94,14 @@
 
 .filter-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   grid-column: span 2;
 }
 
 .btn-filter,
-.btn-export {
+.btn-export,
+.btn-export-pdf {
   padding: 0.7rem 1.1rem;
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -138,7 +139,14 @@
   border: 1px solid rgba(16,185,129,0.3);
 }
 
-.btn-export:disabled {
+.btn-export-pdf {
+  background: rgba(59,130,246,0.12);
+  color: #93c5fd;
+  border: 1px solid rgba(59,130,246,0.35);
+}
+
+.btn-export:disabled,
+.btn-export-pdf:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -817,8 +825,13 @@
     width: 100%;
   }
 
+  .btn-filter {
+    grid-column: span 2;
+  }
+
   .btn-filter,
-  .btn-export {
+  .btn-export,
+  .btn-export-pdf {
     padding-inline: 0.75rem;
     min-height: 44px;
   }
@@ -1643,6 +1656,7 @@
 [data-theme="light"] .status-tag.pending { color: #b45309; }
 [data-theme="light"] .charging-amount { color: #b45309; }
 [data-theme="light"] .btn-export { color: var(--accent-green); }
+[data-theme="light"] .btn-export-pdf { color: var(--accent-blue); }
 
 /* Same base #10b981/#ef4444/#94a3b8 dark-theme values used directly as text
    elsewhere would look inconsistent next to the darker/theme-aware shade
