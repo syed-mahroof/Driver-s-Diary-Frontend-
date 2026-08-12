@@ -75,10 +75,31 @@ function fitText(doc, text, maxWidth, maxFontSize, minFontSize = 10) {
   return { lines: lines.slice(0, 2), fontSize: size };
 }
 
+function rideDedupeKey(ride, row) {
+  if (ride.local_id) return `local:${ride.local_id}`;
+  if (ride.id) return `id:${ride.id}`;
+  return [
+    row.date,
+    row.driver_name,
+    ride.company_name || '',
+    ride.trip_type || '',
+    ride.ride_time || '',
+    formatRoute(ride).trim().toLowerCase(),
+    (ride.vehicle_number || '').trim(),
+    ride.total_km ?? '',
+  ].join('|');
+}
+
 function buildRideRows(reports, { includeCompany = false } = {}) {
   const rows = [];
+  const seen = new Set();
+
   reports.forEach((row) => {
     (row.rides || []).forEach((ride) => {
+      const key = rideDedupeKey(ride, row);
+      if (seen.has(key)) return;
+      seen.add(key);
+
       rows.push({
         date: row.date,
         driverName: row.driver_name,
@@ -101,13 +122,8 @@ function buildRideRows(reports, { includeCompany = false } = {}) {
     return (a.time || '').localeCompare(b.time || '');
   });
 
-  const dayCounters = {};
-  rows.forEach((row) => {
-    const key = includeCompany
-      ? `${row.date}|${row.companyName}|${row.driverName}`
-      : `${row.date}|${row.driverName}`;
-    dayCounters[key] = (dayCounters[key] || 0) + 1;
-    row.dayNo = dayCounters[key];
+  rows.forEach((row, index) => {
+    row.slNo = index + 1;
   });
 
   return rows;
@@ -285,7 +301,7 @@ function drawSummaryRow(doc, startY, pageWidth, items) {
 }
 
 function buildTableConfig({ includeCompany, includeDriver, includeVehicle }) {
-  const head = ['Date', 'No'];
+  const head = ['Date', 'Sl.No.'];
   if (includeDriver) head.push('Driver');
   if (includeCompany) head.push('Client');
   head.push('P/D', 'Time', 'Route');
@@ -334,7 +350,7 @@ function mapBodyRows(rideRows, { includeCompany, includeDriver, includeVehicle }
   }
 
   return rideRows.map((row) => {
-    const cells = [formatDateShort(row.date), row.dayNo];
+    const cells = [formatDateShort(row.date), row.slNo];
     if (includeDriver) cells.push(row.driverName);
     if (includeCompany) cells.push(row.companyName || '-');
     cells.push(
@@ -453,15 +469,6 @@ export async function generateAdminPdfReport({
 
   let ridesCount = totalRides;
   let kmCount = totalKm;
-  if (stats?.company_breakdown?.length && identity.hasCompany) {
-    const match = stats.company_breakdown.find((item) => item.name === identity.companyName);
-    if (match) {
-      ridesCount = match.count;
-      kmCount = parseFloat(match.total_km) || totalKm;
-    }
-  } else if (stats?.total_rides != null) {
-    ridesCount = stats.total_rides;
-  }
 
   const metaLines = [periodLabel];
   if (identity.hasDriver) metaLines.push(`Driver: ${identity.driverLabel}`);
