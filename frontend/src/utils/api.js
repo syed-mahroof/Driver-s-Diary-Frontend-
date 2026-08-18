@@ -57,6 +57,7 @@ export const authAPI = {
 
 export const driverAPI = {
   getDashboard: () => api.get('/driver/dashboard/'),
+  getSalarySummary: () => api.get('/driver/salary-summary/'),
   createRide: (data) => api.post('/rides/', data),
   updateRide: (id, data) => api.patch(`/rides/${id}/update/`, data),
   createCharge: (data) => api.post('/driver/charge/', data),
@@ -77,6 +78,7 @@ export const driverAPI = {
 
 export const adminAPI = {
   getDashboard: (filters = {}) => api.get('/admin/dashboard/', { params: filters }),
+  getSalarySummary: () => api.get('/admin/salary-summary/'),
   getDrivers: () => api.get('/admin/drivers/'),
   createDriver: (data) => api.post('/admin/drivers/create/', data),
   getCompanies: () => api.get('/companies/'),

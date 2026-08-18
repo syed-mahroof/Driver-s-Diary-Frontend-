@@ -7,6 +7,7 @@ import { driverAPI } from '../utils/api';
 import { savePendingRide } from '../utils/db';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { generateDriverSalaryPdfReport } from '../utils/generateSalaryPdfReport';
 import '../styles/Driver.css';
 import logoProfessional from '../assets/logo-professional.png';
 
@@ -59,6 +60,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const [dashboard, setDashboard] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [profileError, setProfileError] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -665,12 +667,21 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
         {/* Complete Statistics Button */}
         {dashboard && (
-          <button
-            className="btn-submit stats-trigger-btn"
-            onClick={() => setShowStatsModal(true)}
-          >
-            <StatsIcon /> Complete Statistics
-          </button>
+          <>
+            <button
+              className="btn-submit salary-trigger-btn"
+              onClick={() => setShowSalaryModal(true)}
+            >
+              <WalletIcon /> Salary Statement
+              <span>View &amp; export</span>
+            </button>
+            <button
+              className="btn-submit stats-trigger-btn"
+              onClick={() => setShowStatsModal(true)}
+            >
+              <StatsIcon /> Complete Statistics
+            </button>
+          </>
         )}
 
         {/* Action Buttons */}
@@ -1167,6 +1178,9 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             onClose={() => setShowStatsModal(false)} 
           />
         )}
+        {showSalaryModal && (
+          <SalaryStatementModal onClose={() => setShowSalaryModal(false)} />
+        )}
           </>
         )}
       </main>
@@ -1531,6 +1545,148 @@ function StatisticsModal({ dashboard, onClose }) {
 
         <div className="modal-actions stats-modal-actions">
           <button type="button" className="btn-submit" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Salary Statement modal — previous and current salary-cycle earnings, pulled
+// from the server-authoritative /driver/salary-summary/ endpoint so the figures
+// here always match the admin view and the exported PDF exactly.
+// ─────────────────────────────────────────────────────────────────────────────
+function formatCycleRange(summary) {
+  const start = new Date(`${summary.cycle_start}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  const end = new Date(`${summary.cycle_end}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return `${start} – ${end}`;
+}
+
+function SalaryCycleBlock({ label, status, summary, rules }) {
+  const attendance = summary.attendance || {};
+  return (
+    <div className="salary-cycle-block">
+      <div className="salary-cycle-header">
+        <span className="salary-cycle-label">{label}</span>
+        <span className="salary-cycle-status">{formatCycleRange(summary)} &bull; {status}</span>
+      </div>
+
+      <div className="stats-modal-pace-row">
+        <div className="stats-modal-pace-tile">
+          <span className="stats-modal-pace-value">{fmt(summary.gross_earnings)}</span>
+          <span className="stats-modal-pace-label">Salary Earned</span>
+        </div>
+        <div className="stats-modal-pace-tile">
+          <span className="stats-modal-pace-value">{fmt(summary.advance_paid)}</span>
+          <span className="stats-modal-pace-label">Advance Paid</span>
+        </div>
+        <div className="stats-modal-pace-tile">
+          <span className="stats-modal-pace-value">{fmt(summary.net_payable)}</span>
+          <span className="stats-modal-pace-label">Net Payable</span>
+        </div>
+      </div>
+
+      <div className="salary-breakdown-list">
+        <div className="salary-breakdown-row">
+          <span className="salary-breakdown-name">Standard ride earnings</span>
+          <span className="salary-breakdown-detail">{summary.standard_rides} rides &times; {fmt(rules.standard_ride_rate)}</span>
+          <span className="salary-breakdown-amount">{fmt(summary.standard_ride_earnings)}</span>
+        </div>
+        <div className="salary-breakdown-row">
+          <span className="salary-breakdown-name">Distance-based earnings</span>
+          <span className="salary-breakdown-detail">{Number(summary.special_kms || 0).toLocaleString('en-IN')} km &times; {fmt(rules.special_km_rate)}</span>
+          <span className="salary-breakdown-amount">{fmt(summary.distance_earnings)}</span>
+        </div>
+        <div className="salary-breakdown-row">
+          <span className="salary-breakdown-name">Incentive bonus</span>
+          <span className="salary-breakdown-detail">{summary.incentive_trips} rides over {rules.incentive_threshold}</span>
+          <span className="salary-breakdown-amount">{fmt(summary.incentive_earnings)}</span>
+        </div>
+      </div>
+
+      <div className="salary-cycle-attendance">
+        <span><strong>{attendance.full_days || 0}</strong> full</span>
+        <span><strong>{attendance.half_days || 0}</strong> half</span>
+        <span><strong>{attendance.leaves || 0}</strong> leave</span>
+        <span><strong>{attendance.holidays || 0}</strong> holiday</span>
+        <span className="salary-cycle-rides"><strong>{summary.total_rides}</strong> total rides</span>
+      </div>
+    </div>
+  );
+}
+
+function SalaryStatementModal({ onClose }) {
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await driverAPI.getSalarySummary();
+        if (active) setSummary(data);
+      } catch (err) {
+        if (active) setError(err.response?.data?.error || 'Failed to load salary statement.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const handleExportPdf = async () => {
+    if (!summary) return;
+    setExporting(true);
+    try {
+      await generateDriverSalaryPdfReport(summary);
+    } catch (err) {
+      alert('PDF export failed: ' + (err.message || 'Unable to generate report'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card stats-modal salary-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="stats-modal-title"><WalletIcon /> Salary Statement</h3>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+
+        {loading ? (
+          <div className="salary-modal-status">Loading salary details...</div>
+        ) : error ? (
+          <div className="salary-modal-status">{error}</div>
+        ) : (
+          <div className="stats-modal-body salary-modal-body">
+            <div className="stats-modal-pills-row">
+              <div className="stats-modal-pill">
+                <span className="stats-modal-pill-value">{fmt(summary.previous_cycle.gross_earnings)}</span>
+                <span className="stats-modal-pill-label">Previous Earned</span>
+              </div>
+              <div className="stats-modal-pill stats-modal-pill-gold">
+                <span className="stats-modal-pill-value">{fmt(summary.current_cycle.gross_earnings)}</span>
+                <span className="stats-modal-pill-label">Current Earned</span>
+              </div>
+              <div className="stats-modal-pill">
+                <span className="stats-modal-pill-value">{fmt(summary.current_cycle.net_payable)}</span>
+                <span className="stats-modal-pill-label">Current Payable</span>
+              </div>
+            </div>
+
+            <SalaryCycleBlock label="Previous Cycle" status="Finalised" summary={summary.previous_cycle} rules={summary.salary_rules} />
+            <SalaryCycleBlock label="Current Cycle" status="In progress" summary={summary.current_cycle} rules={summary.salary_rules} />
+          </div>
+        )}
+
+        <div className="modal-actions stats-modal-actions salary-modal-actions">
+          <button type="button" className="btn-cancel" onClick={onClose}>Close</button>
+          <button type="button" className="btn-submit" onClick={handleExportPdf} disabled={!summary || exporting}>
+            {exporting ? 'Generating...' : 'Export PDF'}
+          </button>
         </div>
       </div>
     </div>

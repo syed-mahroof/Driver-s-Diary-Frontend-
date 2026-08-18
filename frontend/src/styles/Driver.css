@@ -547,8 +547,142 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: var(--accent);
-  color: #000;
+  background: #7c3aed;
+  color: #fff;
+  transition: opacity 0.2s, transform 0.08s;
+}
+
+.stats-trigger-btn:active {
+  transform: scale(0.98);
+}
+
+/* ── Salary Statement trigger + modal ────────────────────────────────── */
+.salary-trigger-btn {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #15803d;
+  color: #fff;
+  transition: opacity 0.2s, transform 0.08s;
+}
+
+.salary-trigger-btn:active {
+  transform: scale(0.98);
+}
+
+.salary-trigger-btn span {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.85;
+}
+
+.salary-modal {
+  max-width: 460px;
+}
+
+.salary-modal-body {
+  gap: 1.1rem;
+}
+
+.salary-modal-status {
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.salary-cycle-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--bg-card2);
+  border-radius: 14px;
+  padding: 0.85rem 0.85rem 1rem;
+}
+
+.salary-cycle-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.salary-cycle-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.salary-cycle-status {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.salary-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.salary-breakdown-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name amount" "detail amount";
+  row-gap: 0.05rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg-input);
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.salary-breakdown-name {
+  grid-area: name;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.salary-breakdown-detail {
+  grid-area: detail;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.salary-breakdown-amount {
+  grid-area: amount;
+  align-self: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.salary-cycle-attendance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding-top: 0.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.salary-cycle-attendance strong {
+  color: var(--text-secondary);
+}
+
+.salary-cycle-rides {
+  margin-left: auto;
+}
+
+.modal-actions.salary-modal-actions {
+  grid-template-columns: 1fr 1fr;
+  padding: 0 1.25rem 1.25rem;
 }
 
 .stats-modal {

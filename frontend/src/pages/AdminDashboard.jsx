@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { adminAPI } from '../utils/api';
 import { generateAdminPdfReport, generateMonthlyCompanyPdfReport } from '../utils/generateAdminPdfReport';
+import { generateAdminSalaryPdfReport } from '../utils/generateSalaryPdfReport';
 import '../styles/Admin.css';
 
 export default function AdminDashboard({ toggleTheme, theme }) {
@@ -27,6 +28,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [showChargesModal, setShowChargesModal] = useState(false);
   const [showAddChargeModal, setShowAddChargeModal] = useState(false);
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [advanceRequests, setAdvanceRequests] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState(new Set());
@@ -444,6 +446,21 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   <div className="clickable-hint">Click to view breakdown</div>
                 </div>
               </div>
+
+              {/* Driver Salaries (clickable) */}
+              <div
+                className="stats-layer interactive-layer"
+                onClick={() => setShowSalaryModal(true)}
+              >
+                <div className="layer-icon-box green">
+                  <BanknoteIcon />
+                </div>
+                <div className="layer-content">
+                  <div className="layer-value green">View Statement</div>
+                  <div className="layer-label">Driver Salaries (Previous &amp; Current Cycle)</div>
+                  <div className="clickable-hint">Click to view breakdown &amp; export PDF</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -580,6 +597,14 @@ export default function AdminDashboard({ toggleTheme, theme }) {
           onClose={() => setShowMonthlyReportModal(false)}
           companies={companies}
         />
+      )}
+
+      {showSalaryModal && (
+        <div className="modal-overlay" onClick={() => setShowSalaryModal(false)}>
+          <div className="modal-card salary-modal-card" onClick={e => e.stopPropagation()}>
+            <DriverSalaryPanel onClose={() => setShowSalaryModal(false)} />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1005,6 +1030,9 @@ const UsersIcon = () => (
 );
 const WalletIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+);
+const BanknoteIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
 );
 
 function AdvanceRequestsPanel({ requests, onUpdate, onClose }) {
@@ -1446,5 +1474,150 @@ function AddChargeModal({ drivers, vehicles, onClose, onSuccess }) {
         </form>
       </div>
     </div>
+  );
+}
+
+function formatSalaryDate(value) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Driver Salaries panel — every active driver's previous (finalised) and
+// current (in-progress) salary-cycle earnings, sourced from the same
+// /admin/salary-summary/ endpoint used for the exported PDF, so the on-screen
+// totals and the PDF can never disagree.
+// ─────────────────────────────────────────────────────────────────────────────
+function rs(value) {
+  return `Rs ${Number(value || 0).toLocaleString('en-IN')}`;
+}
+
+function DriverSalaryPanel({ onClose }) {
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await adminAPI.getSalarySummary();
+        if (active) setSummary(data);
+      } catch (err) {
+        if (active) setError(err.response?.data?.error || 'Failed to load driver salaries.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const handleExportPdf = async () => {
+    if (!summary) return;
+    setExporting(true);
+    try {
+      await generateAdminSalaryPdfReport(summary);
+    } catch (err) {
+      alert('PDF export failed: ' + (err.message || 'Unable to generate report'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const visibleDrivers = (summary?.drivers || []).filter(driver =>
+    driver.driver_name.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
+  return (
+    <section className="salary-panel">
+      <div className="salary-panel-header">
+        <h3>Driver Salaries</h3>
+        <div className="salary-panel-actions">
+          <button type="button" className="btn-export-pdf salary-export-btn" onClick={handleExportPdf} disabled={!summary || exporting}>
+            {exporting ? 'Generating...' : 'Export PDF'}
+          </button>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="loading-state">Loading driver salaries...</div>
+      ) : error ? (
+        <div className="empty-state">{error}</div>
+      ) : (
+        <>
+          <div className="salary-summary-grid">
+            <div className="salary-summary-tile">
+              <div className="salary-summary-tile-label">Previous Earned</div>
+              <div className="salary-summary-tile-value">{rs(summary.previous_cycle.totals.gross_earnings)}</div>
+            </div>
+            <div className="salary-summary-tile">
+              <div className="salary-summary-tile-label">Previous Payable</div>
+              <div className="salary-summary-tile-value">{rs(summary.previous_cycle.totals.net_payable)}</div>
+            </div>
+            <div className="salary-summary-tile green">
+              <div className="salary-summary-tile-label">Current Earned</div>
+              <div className="salary-summary-tile-value">{rs(summary.current_cycle.totals.gross_earnings)}</div>
+            </div>
+            <div className="salary-summary-tile blue">
+              <div className="salary-summary-tile-label">Current Payable</div>
+              <div className="salary-summary-tile-value">{rs(summary.current_cycle.totals.net_payable)}</div>
+            </div>
+          </div>
+
+          <div className="salary-cycle-caption">
+            <span><strong>Previous cycle</strong> &middot; {formatSalaryDate(summary.previous_cycle.cycle_start)} – {formatSalaryDate(summary.previous_cycle.cycle_end)} &middot; finalised</span>
+            <span><strong>Current cycle</strong> &middot; {formatSalaryDate(summary.current_cycle.cycle_start)} – {formatSalaryDate(summary.current_cycle.cycle_end)} &middot; earnings to date</span>
+          </div>
+
+          {summary.drivers.length > 5 && (
+            <div className="form-group salary-search-group">
+              <input
+                type="text"
+                placeholder="Search driver..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          )}
+
+          {summary.drivers.length === 0 ? (
+            <div className="empty-state">No active drivers found.</div>
+          ) : visibleDrivers.length === 0 ? (
+            <div className="empty-state">No drivers match &ldquo;{search}&rdquo;.</div>
+          ) : (
+            <div className="salary-driver-list">
+              {visibleDrivers.map(driver => (
+                <div className="salary-driver-card" key={driver.driver_id}>
+                  <div className="salary-driver-card-top">
+                    <strong>{driver.driver_name}</strong>
+                    <span className="salary-driver-rides">{driver.current_cycle.total_rides} rides this cycle</span>
+                  </div>
+                  <div className="salary-driver-cycles">
+                    <div className="salary-driver-cycle">
+                      <span className="salary-driver-cycle-label">Previous</span>
+                      <div className="salary-driver-cycle-stats">
+                        <div><span>Earned</span><strong>{rs(driver.previous_cycle.gross_earnings)}</strong></div>
+                        <div><span>Advance</span><strong>{rs(driver.previous_cycle.advance_paid)}</strong></div>
+                        <div><span>Payable</span><strong className="payable">{rs(driver.previous_cycle.net_payable)}</strong></div>
+                      </div>
+                    </div>
+                    <div className="salary-driver-cycle current">
+                      <span className="salary-driver-cycle-label">Current</span>
+                      <div className="salary-driver-cycle-stats">
+                        <div><span>Earned</span><strong>{rs(driver.current_cycle.gross_earnings)}</strong></div>
+                        <div><span>Advance</span><strong>{rs(driver.current_cycle.advance_paid)}</strong></div>
+                        <div><span>Payable</span><strong className="payable">{rs(driver.current_cycle.net_payable)}</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }
