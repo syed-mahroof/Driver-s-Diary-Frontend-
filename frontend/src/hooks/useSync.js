@@ -1,25 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getPendingRides, markRideSynced, clearSyncedRides, countPendingRides } from '../utils/db';
 import { driverAPI } from '../utils/api';
 
-export function useSync() {
+export function useSync(ownerId) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
+  const syncLock = useRef(false);
+  const mounted = useRef(false);
+
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const refreshPendingCount = useCallback(async () => {
-    const count = await countPendingRides();
-    setPendingCount(count);
-  }, []);
+    const count = await countPendingRides(ownerId);
+    if (mounted.current) setPendingCount(count);
+  }, [ownerId]);
 
   const syncNow = useCallback(async () => {
-    if (!navigator.onLine || syncing) return;
-    const pending = await getPendingRides();
-    if (pending.length === 0) return;
-
-    setSyncing(true);
+    if (!navigator.onLine || syncLock.current || ownerId == null) return;
+    syncLock.current = true;
     try {
+      const pending = await getPendingRides(ownerId);
+      if (!pending.length || !mounted.current) return;
+      const account = JSON.parse(localStorage.getItem('user') || 'null');
+      if (account?.id !== ownerId) return;
+      setSyncing(true);
       const payload = pending.map(r => ({
         local_id: r.local_id,
         company_id: r.company_id,
@@ -37,18 +43,19 @@ export function useSync() {
 
       const { data } = await driverAPI.syncRides(payload);
 
-      for (const local_id of data.synced) {
+      for (const local_id of [...data.synced, ...data.skipped]) {
         await markRideSynced(local_id);
       }
       await clearSyncedRides();
       await refreshPendingCount();
-      setLastSynced(new Date());
+      if (mounted.current) setLastSynced(new Date());
     } catch (err) {
       console.error('Sync failed:', err);
     } finally {
-      setSyncing(false);
+      syncLock.current = false;
+      if (mounted.current) setSyncing(false);
     }
-  }, [syncing, refreshPendingCount]);
+  }, [ownerId, refreshPendingCount]);
 
   useEffect(() => {
     const onOnline = () => {
@@ -60,6 +67,7 @@ export function useSync() {
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     refreshPendingCount();
+    syncNow();
 
     return () => {
       window.removeEventListener('online', onOnline);

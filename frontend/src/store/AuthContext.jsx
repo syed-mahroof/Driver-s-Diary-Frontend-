@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
+    try { return stored ? JSON.parse(stored) : null; } catch { return null; }
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +20,8 @@ export function AuthProvider({ children }) {
       localStorage.setItem('refresh_token', data.refresh);
 
       // Decode user info from JWT payload
-      const payload = JSON.parse(atob(data.access.split('.')[1]));
+      const encoded = data.access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=')));
       const userData = {
         id: payload.user_id,
         username,

@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoProfessional from '../assets/logo-professional.png';
+import { selectionValues } from './filters';
 
 const BRAND_BLUE = [31, 58, 95];
 const MARGIN_X = 10;
@@ -129,16 +130,17 @@ function buildRideRows(reports, { includeCompany = false } = {}) {
   return rows;
 }
 
-function resolveReportIdentity({ filters, companies, drivers }) {
-  const company = companies.find((c) => String(c.id) === String(filters.company_id));
-  const driver = drivers.find((d) => String(d.id) === String(filters.driver_id));
-  const companyName = company?.name || '';
-  const driverName = driver?.name || '';
-  const vehicleNumber = filters.vehicle_number || '';
+export function resolveReportIdentity({ filters, companies, drivers }) {
+  const companyIds = selectionValues(filters.company_id);
+  const driverIds = selectionValues(filters.driver_id);
+  const vehicleNumbers = selectionValues(filters.vehicle_number);
+  const companyName = companies.filter(c => companyIds.includes(String(c.id))).map(c => c.name).join(', ');
+  const driverName = drivers.filter(d => driverIds.includes(String(d.id))).map(d => d.name).join(', ');
+  const vehicleNumber = vehicleNumbers.join(', ');
 
-  const hasCompany = Boolean(filters.company_id);
-  const hasDriver = Boolean(filters.driver_id);
-  const hasVehicle = Boolean(filters.vehicle_number);
+  const hasCompany = companyIds.length === 1;
+  const hasDriver = driverIds.length === 1;
+  const hasVehicle = vehicleNumbers.length === 1;
 
   let title = 'All Rides';
   let subtitle = 'Admin Ride Report';
@@ -186,7 +188,7 @@ function resolveReportIdentity({ filters, companies, drivers }) {
 
   return {
     title,
-    subtitle,
+    subtitle: [subtitle, companyIds.length > 1 ? `${companyIds.length} companies` : '', driverIds.length > 1 ? `${driverIds.length} drivers` : '', vehicleNumbers.length > 1 ? `${vehicleNumbers.length} vehicles` : ''].filter(Boolean).join(' · '),
     footerLabel,
     companyName: companyName || 'All Companies',
     driverLabel: driverName || 'All Drivers',

@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'cabservice-offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const RIDES_STORE = 'pending-rides';
 
 let dbPromise = null;
@@ -9,11 +9,14 @@ let dbPromise = null;
 function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion, newVersion, transaction) {
         if (!db.objectStoreNames.contains(RIDES_STORE)) {
           const store = db.createObjectStore(RIDES_STORE, { keyPath: 'local_id' });
           store.createIndex('synced', 'synced');
           store.createIndex('driver_id', 'driver_id');
+        } else {
+          const store = transaction.objectStore(RIDES_STORE);
+          if (!store.indexNames.contains('driver_id')) store.createIndex('driver_id', 'driver_id');
         }
       },
     });
@@ -44,9 +47,10 @@ export async function savePendingRide(ride) {
   return record;
 }
 
-export async function getPendingRides() {
+export async function getPendingRides(ownerId) {
+  if (ownerId == null) return [];
   const db = await getDB();
-  const all = await db.getAll(RIDES_STORE);
+  const all = await db.getAllFromIndex(RIDES_STORE, 'driver_id', ownerId);
   return all.filter(r => !r.synced);
 }
 
@@ -68,7 +72,7 @@ export async function clearSyncedRides() {
   await tx.done;
 }
 
-export async function countPendingRides() {
-  const pending = await getPendingRides();
+export async function countPendingRides(ownerId) {
+  const pending = await getPendingRides(ownerId);
   return pending.length;
 }

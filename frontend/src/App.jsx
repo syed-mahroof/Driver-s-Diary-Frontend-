@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './store/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import DriverDashboard from './pages/DriverDashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import { InstallPrompt } from './components/InstallPrompt';
 import SplashScreen from './components/SplashScreen';
 import './styles/global.css';
+
+const DriverDashboard = lazy(() => import('./pages/DriverDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
@@ -39,7 +40,7 @@ export default function App() {
       )}
       <BrowserRouter>
         <InstallPrompt />
-        <Routes>
+        <Suspense fallback={<div className="loading-state" role="status">Loading dashboard…</div>}><Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -60,7 +61,7 @@ export default function App() {
           />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        </Routes></Suspense>
       </BrowserRouter>
     </AuthProvider>
   );

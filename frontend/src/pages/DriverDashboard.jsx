@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { useSync } from '../hooks/useSync';
 import { driverAPI } from '../utils/api';
 import { savePendingRide } from '../utils/db';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { generateDriverSalaryPdfReport } from '../utils/generateSalaryPdfReport';
 import '../styles/Driver.css';
 import logoProfessional from '../assets/logo-professional.png';
 
-const TODAY = new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local time
+const localToday = () => new Date().toLocaleDateString('en-CA');
+const confetti = options => import('canvas-confetti').then(module => module.default(options)).catch(() => {});
 
 const pickupTimes = [
   { value: '06:00', label: '6:00 am' },
@@ -54,7 +51,7 @@ const dropTimes = [
 
 export default function DriverDashboard({ toggleTheme, theme }) {
   const { user, logout } = useAuth();
-  const { isOnline, pendingCount, syncing, syncNow, refreshPendingCount } = useSync();
+  const { isOnline, pendingCount, syncing, syncNow, refreshPendingCount, lastSynced } = useSync(user?.id);
   const navigate = useNavigate();
 
   const [dashboard, setDashboard] = useState(null);
@@ -77,8 +74,14 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const [showAdvanceSalaryModal, setShowAdvanceSalaryModal] = useState(false);
   const [editingRide, setEditingRide] = useState(null);
 
+  useEffect(() => {
+    if (!successMsg) return;
+    const timer = setTimeout(() => setSuccessMsg(''), 4000);
+    return () => clearTimeout(timer);
+  }, [successMsg]);
+
   const [form, setForm] = useState({
-    date: TODAY,
+    date: localToday(),
     company: '',
     ride_time: '',
     trip_type: 'P',
@@ -89,7 +92,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   });
 
   const [chargeForm, setChargeForm] = useState({
-    date: TODAY,
+    date: localToday(),
     app_used: '',
     time: '',
     place: '',
@@ -98,7 +101,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   });
 
   const fetchDashboard = useCallback(async () => {
-    if (!isOnline) return;
+    if (!isOnline) { setLoading(false); return; }
     try {
       const { data } = await driverAPI.getDashboard();
       setDashboard(data);
@@ -135,14 +138,14 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   }, [fetchDashboard, fetchCompanies, fetchVehicles]);
 
   useEffect(() => {
-    if (showForm && dashboard) {
+    if (showForm && dashboard && !editingRide) {
       setSeaterType(dashboard.default_seater || 4);
       setForm(prev => ({
         ...prev,
         vehicle_number: dashboard.default_vehicle_number || ''
       }));
     }
-  }, [showForm, dashboard]);
+  }, [showForm, dashboard, editingRide]);
 
   useEffect(() => {
     if (showChargeForm && dashboard) {
@@ -152,6 +155,8 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       }));
     }
   }, [showChargeForm, dashboard]);
+
+  useEffect(() => { if (lastSynced) fetchDashboard(); }, [lastSynced, fetchDashboard]);
 
   const getFilteredTimesForState = (stateObj) => {
     if (!stateObj.company) {
@@ -231,6 +236,10 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
   const handleAddRide = async (e) => {
     e.preventDefault();
+    if (editingRide && !isOnline) {
+      alert('Connect to the internet to edit an existing ride.');
+      return;
+    }
     setSubmitting(true);
     const local_id = crypto.randomUUID();
 
@@ -292,7 +301,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       }
 
       setForm({
-        date: TODAY,
+        date: localToday(),
         company: '',
         ride_time: '',
         trip_type: 'P',
@@ -304,7 +313,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       if (dashboard) setSeaterType(dashboard.default_seater || 4);
       setShowForm(false);
       setEditingRide(null);
-      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       alert('Failed to save ride: ' + (err.response?.data?.detail || err.message));
     } finally {
@@ -337,7 +345,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
       }
 
       setChargeForm({
-        date: TODAY,
+        date: localToday(),
         app_used: '',
         time: '',
         place: '',
@@ -380,6 +388,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   const handleExportReport = async (period) => {
     try {
       const { data: report } = await driverAPI.getReportData(period);
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
       const doc = new jsPDF();
       
       // Load Logo
@@ -613,7 +622,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                 <h2>Good {getGreeting()}, {dashboard?.driver_name?.split(' ')[0] || user?.username}!</h2>
             <span className={`status-dot ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'} />
           </div>
-          <p className="welcome-date">{formatDate(TODAY)}</p>
+          <p className="welcome-date">{formatDate(localToday())}</p>
         </div>
 
         {/* Success message */}
@@ -711,7 +720,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                   setShowForm(false);
                   setEditingRide(null);
                   setForm({
-                    date: TODAY,
+                    date: localToday(),
                     company: '',
                     ride_time: '',
                     trip_type: 'P',
@@ -733,7 +742,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     value={form.date}
                     onChange={handleFormChange}
                     required
-                    max={TODAY}
+                    max={localToday()}
                   />
                 </div>
 
@@ -880,7 +889,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       setShowForm(false);
                       setEditingRide(null);
                       setForm({
-                        date: TODAY,
+                        date: localToday(),
                         company: '',
                         ride_time: '',
                         trip_type: 'P',
@@ -925,7 +934,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                     value={chargeForm.date}
                     onChange={handleChargeFormChange}
                     required
-                    max={TODAY}
+                    max={localToday()}
                   />
                 </div>
 
@@ -1168,7 +1177,6 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             onSuccess={(msg) => {
               setShowAdvanceSalaryModal(false);
               setSuccessMsg(msg);
-              setTimeout(() => setSuccessMsg(''), 4000);
             }}
           />
         )}
@@ -1640,6 +1648,7 @@ function SalaryStatementModal({ onClose }) {
     if (!summary) return;
     setExporting(true);
     try {
+      const { generateDriverSalaryPdfReport } = await import('../utils/generateSalaryPdfReport');
       await generateDriverSalaryPdfReport(summary);
     } catch (err) {
       alert('PDF export failed: ' + (err.message || 'Unable to generate report'));
@@ -1911,6 +1920,7 @@ function EarningsTracker({ dashboard, isOnline }) {
   const [dailyMessage, setDailyMessage] = useState('');
 
   useEffect(() => {
+    const timers = [];
     const todayStr = new Date().toLocaleDateString('en-CA');
     const storageKey = `gold-celebrated-${dashboard?.driver_name}-${todayStr}`;
 
@@ -1946,7 +1956,7 @@ function EarningsTracker({ dashboard, isOnline }) {
         localStorage.setItem(storageKey, 'true');
 
         // Auto dismiss after 4 seconds
-        setTimeout(() => setShowToast(false), 4000);
+        timers.push(setTimeout(() => setShowToast(false), 4000));
       }
     }
     prevIsGold.current = isGoldMonth;
@@ -1984,12 +1994,13 @@ function EarningsTracker({ dashboard, isOnline }) {
         ];
         setDailyMessage(dailyMessages[Math.floor(Math.random() * dailyMessages.length)]);
         setShowDailyTag(true);
-        setTimeout(() => setShowDailyTag(false), 3500);
+        timers.push(setTimeout(() => setShowDailyTag(false), 3500));
 
         localStorage.setItem(dailyStorageKey, 'true');
       }
     }
     prevIsDailyGold.current = isDailyGold;
+    return () => timers.forEach(clearTimeout);
   }, [isGoldMonth, isDailyGold]);
 
   return (

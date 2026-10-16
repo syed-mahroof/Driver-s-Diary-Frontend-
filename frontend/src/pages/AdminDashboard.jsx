@@ -1,16 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { adminAPI } from '../utils/api';
-import { generateAdminPdfReport, generateMonthlyCompanyPdfReport } from '../utils/generateAdminPdfReport';
-import { generateAdminSalaryPdfReport } from '../utils/generateSalaryPdfReport';
 import '../styles/Admin.css';
+import MultiSelectFilter from '../components/MultiSelectFilter';
+import DriverPerformance from '../components/DriverPerformance';
+import { RideModal, ChargeModal, AdvanceModal, DriverManagement } from '../components/AdminTools';
+import { filterParams } from '../utils/filters';
+import '../styles/AdminTools.css';
 
 export default function AdminDashboard({ toggleTheme, theme }) {
   const authCtx = useAuth();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState(null);
+  const [performance, setPerformance] = useState(null);
+  const [fetchError, setFetchError] = useState('');
+  const [performanceError, setPerformanceError] = useState('');
+  const [notice, setNotice] = useState('');
+  const requestRef = useRef(null);
+  const [showRideModal, setShowRideModal] = useState(false);
+  const [editingRide, setEditingRide] = useState(null);
+  const [initialDriver, setInitialDriver] = useState('');
+  const [editingCharge, setEditingCharge] = useState(null);
+  const [showRecordAdvance, setShowRecordAdvance] = useState(false);
   const [reports, setReports] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -21,6 +34,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
 
   // Modals state
   const [showDriverModal, setShowDriverModal] = useState(false);
+  const [driverToEdit, setDriverToEdit] = useState(undefined);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showAdvancePanel, setShowAdvancePanel] = useState(false);
@@ -68,39 +82,52 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [filters, setFilters] = useState({
     start_date: today,
     end_date: today,
-    driver_id: '',
-    vehicle_number: '',
-    company_id: '',
+    driver_id: [],
+    vehicle_number: [],
+    company_id: [],
   });
 
   const isActive = (start, end) => filters.start_date === start && filters.end_date === end;
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchLookups = useCallback(async () => {
     try {
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value !== '')
-      );
-      const [statsRes, reportsRes, driversRes, companiesRes, vehiclesRes] = await Promise.all([
-        adminAPI.getDashboard(params),
-        adminAPI.getReports(params),
-        adminAPI.getDrivers(),
-        adminAPI.getCompanies(),
-        adminAPI.getVehicles(),
-      ]);
-      setStats(statsRes.data);
-      setReports(reportsRes.data);
-      setDrivers(driversRes.data);
-      setCompanies(companiesRes.data);
-      setVehicles(vehiclesRes.data);
-    } catch (err) {
-      console.error('Admin fetch failed', err);
-    } finally {
-      setLoading(false);
+      const [driversRes, companiesRes, vehiclesRes] = await Promise.all([adminAPI.getDrivers(), adminAPI.getCompanies(), adminAPI.getVehicles()]);
+      setDrivers(driversRes.data); setCompanies(companiesRes.data); setVehicles(vehiclesRes.data);
+    } catch { setFetchError('Unable to load drivers, companies or vehicles. Refresh to retry.'); }
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    if (!filters.start_date || !filters.end_date || filters.start_date > filters.end_date) {
+      setFetchError('Choose a valid date range. End date must be on or after start date.');
+      setStats(null); setReports([]); setPerformance(null); setLoading(false); return;
     }
+    setLoading(true); setFetchError(''); setPerformanceError('');
+    try {
+      const params = filterParams(filters);
+      const config = { signal: controller.signal };
+      const [statsRes, reportsRes, performanceRes] = await Promise.all([
+        adminAPI.getDashboard(params, config), adminAPI.getReports(params, config),
+        adminAPI.getPerformance(params, config).catch(error => {
+          if (!controller.signal.aborted) setPerformanceError(Object.values(error.response?.data || {}).flat().join(' ') || 'Performance could not load. Refresh to retry.');
+          return null;
+        }),
+      ]);
+      if (controller.signal.aborted) return;
+      setStats(statsRes.data); setReports(reportsRes.data); setPerformance(performanceRes?.data || null);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setFetchError(Object.values(error.response?.data || {}).flat().join(' ') || 'Dashboard could not load. Refresh to retry.');
+        setStats(null); setReports([]); setPerformance(null);
+      }
+    } finally { if (!controller.signal.aborted) setLoading(false); }
   }, [filters]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchAll(); return () => requestRef.current?.abort(); }, [fetchAll]);
+  useEffect(() => { fetchLookups(); }, [fetchLookups]);
+  useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(''), 4500); return () => clearTimeout(timer); }, [notice]);
 
   const fetchAdvanceRequests = useCallback(async () => {
     try {
@@ -129,23 +156,21 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value !== '')
-      );
+      const params = filterParams(filters);
       const response = await adminAPI.exportExcel(params);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
       a.href = url;
       const parts = ['ride_manifest'];
-      if (filters.company_id) {
+      if (filters.company_id.length) {
         const company = companies.find((c) => String(c.id) === String(filters.company_id));
         if (company?.name) parts.push(company.name.replace(/[^\w\-]+/g, '_'));
       }
-      if (filters.driver_id) {
+      if (filters.driver_id.length) {
         const driver = drivers.find((d) => String(d.id) === String(filters.driver_id));
         if (driver?.name) parts.push(driver.name.replace(/[^\w\-]+/g, '_'));
       }
-      if (filters.vehicle_number) {
+      if (filters.vehicle_number.length) {
         parts.push(String(filters.vehicle_number).replace(/[^\w\-]+/g, '_'));
       }
       parts.push(filters.start_date, 'to', filters.end_date);
@@ -174,13 +199,12 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const handleExportPdf = async () => {
     setExportingPdf(true);
     try {
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value !== '')
-      );
+      const params = filterParams(filters);
       const [reportsRes, statsRes] = await Promise.all([
         adminAPI.getReports(params),
         adminAPI.getDashboard(params),
       ]);
+      const { generateAdminPdfReport } = await import('../utils/generateAdminPdfReport');
       await generateAdminPdfReport({
         filters,
         companies,
@@ -201,7 +225,10 @@ export default function AdminDashboard({ toggleTheme, theme }) {
     navigate('/login');
   };
 
-  const groupedReports = groupReportsByDate(reports);
+  const groupedReports = useMemo(() => groupReportsByDate(reports), [reports]);
+  const changed = (message) => { setNotice(message); fetchAll(); fetchAdvanceRequests(); };
+  const addRide = (driverId = '') => { setEditingRide(null); setInitialDriver(driverId); setShowRideModal(true); };
+  const editRide = (ride) => { setEditingRide(ride); setShowRideModal(true); };
 
   return (
     <div className="admin-page">
@@ -219,7 +246,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             <button
               className="notif-btn"
               onClick={() => { setShowAdvancePanel(!showAdvancePanel); fetchAdvanceRequests(); }}
-              title="Advance Salary Requests"
+              title="Advance Salary Requests" aria-label="Advance salary requests" aria-expanded={showAdvancePanel}
             >
               <BellIcon />
               {stats?.pending_advance_count > 0 && (
@@ -232,7 +259,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             <button 
               className="menu-btn" 
               onClick={() => setMenuOpen(!menuOpen)}
-              title="Menu"
+              title="Menu" aria-label="Menu" aria-expanded={menuOpen}
             >
               ⋮
             </button>
@@ -262,50 +289,32 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       </header>
 
       <main className="admin-main">
+        <div className="admin-workspace-heading"><div><span className="section-eyebrow">Admin workspace</span><h1>Fleet overview</h1><p>Manage driver records and track fleet activity.</p></div></div>
+        <div className="admin-quick-actions" aria-label="Admin actions">
+          <button className="btn-submit" onClick={() => addRide()}>+ Add ride</button>
+          <button className="btn-cancel" onClick={() => { setEditingCharge(null); setShowAddChargeModal(true); }}>+ Add charge</button>
+          <button className="btn-cancel" onClick={() => setShowRecordAdvance(true)}>+ Record advance</button>
+          <button className="btn-cancel" onClick={() => { setDriverToEdit(undefined); setShowDriverModal(true); }}>Manage drivers</button>
+        </div>
+        {notice && <div className="success-banner" role="status">{notice}</div>}
+        {fetchError && <div className="error-banner" role="alert">{fetchError}</div>}
         <div className="filter-panel">
-          <h3 className="filter-title">Filters</h3>
+          <div className="section-heading"><h3 className="filter-title">Filters</h3><button className="text-action" onClick={() => setFilters(previous => ({ ...previous, driver_id: [], company_id: [], vehicle_number: [] }))}>Clear selections</button></div>
+          <p className="filter-hint">Select multiple options. Matches any selection within a filter and all filters together.</p>
           <div className="filter-grid">
             <div className="form-group">
               <label>From Date</label>
-              <input type="date" name="start_date" value={filters.start_date} onChange={handleFilterChange} />
+              <input aria-label="From date" type="date" name="start_date" value={filters.start_date} onChange={handleFilterChange} />
             </div>
             <div className="form-group">
               <label>To Date</label>
-              <input type="date" name="end_date" value={filters.end_date} onChange={handleFilterChange} />
+              <input aria-label="To date" type="date" name="end_date" value={filters.end_date} onChange={handleFilterChange} />
             </div>
-            <div className="form-group">
-              <label>Driver</label>
-              <select name="driver_id" value={filters.driver_id} onChange={handleFilterChange}>
-                <option value="">All Drivers</option>
-                {drivers.map(driver => (
-                  <option key={driver.id} value={driver.id}>{driver.name}</option>
-                ))}
-                <option value="ADD_NEW_DRIVER" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>+ Add New Driver</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Vehicle</label>
-              <select name="vehicle_number" value={filters.vehicle_number} onChange={handleFilterChange}>
-                <option value="">All Vehicles</option>
-                {vehicles.map(vehicle => (
-                  <option key={vehicle.id} value={vehicle.number}>
-                    {vehicle.number}{vehicle.seater ? ` (${vehicle.seater} Seater)` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Company</label>
-              <select name="company_id" value={filters.company_id} onChange={handleFilterChange}>
-                <option value="">All Companies</option>
-                {companies.map(company => (
-                  <option key={company.id} value={company.id}>{company.name}</option>
-                ))}
-                <option value="ADD_NEW_COMPANY" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>+ Add New Company</option>
-              </select>
-            </div>
+            <MultiSelectFilter label="Drivers" value={filters.driver_id} options={drivers.map(driver => ({ value: driver.id, label: `${driver.name}${driver.is_active ? '' : ' (removed)'}` }))} onChange={value => setFilters(previous => ({ ...previous, driver_id: value }))} onAdd={() => { setDriverToEdit(null); setShowDriverModal(true); }} />
+            <MultiSelectFilter label="Vehicles" value={filters.vehicle_number} options={vehicles.map(vehicle => ({ value: vehicle.number, label: `${vehicle.number} (${vehicle.seater} seater)` }))} onChange={value => setFilters(previous => ({ ...previous, vehicle_number: value }))} onAdd={() => setShowVehicleModal(true)} />
+            <MultiSelectFilter label="Companies" value={filters.company_id} options={companies.map(company => ({ value: company.id, label: company.name }))} onChange={value => setFilters(previous => ({ ...previous, company_id: value }))} onAdd={() => setShowCompanyModal(true)} />
             <div className="filter-actions">
-              <button className="btn-filter" onClick={fetchAll}>Apply</button>
+              <button className="btn-filter" onClick={() => { fetchAll(); fetchLookups(); }} disabled={loading}>Refresh</button>
               <button className="btn-export" onClick={handleExport} disabled={exporting || exportingPdf}>
                 {exporting ? 'Exporting...' : 'Export Excel'}
               </button>
@@ -374,7 +383,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   </div>
                 </div>
                 <div className="company-chips-row">
-                  {(stats.company_breakdown || [])
+                  {[...(stats.company_breakdown || [])]
                     .sort((a, b) => b.count - a.count)
                     .map(c => (
                     <div className="company-stat-chip" key={c.name}>
@@ -396,7 +405,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   </div>
                   <div className="layer-content">
                     <div className="layer-value purple">{stats.total_drivers}</div>
-                    <div className="layer-label">Active Drivers</div>
+                    <div className="layer-label">Drivers in Scope</div>
                   </div>
                 </div>
                 <div className="stats-layer duo-item">
@@ -414,6 +423,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
               <div
                 className="stats-layer interactive-layer"
                 onClick={() => setShowAdvancePaidModal(true)}
+                role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowAdvancePaidModal(true); } } }
               >
                 <div className="layer-icon-box teal">
                   <WalletIcon />
@@ -434,6 +444,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
               <div
                 className="stats-layer interactive-layer"
                 onClick={() => setShowChargesModal(true)}
+                role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowChargesModal(true); } } }
               >
                 <div className="layer-icon-box amber">
                   <BoltIcon />
@@ -451,6 +462,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
               <div
                 className="stats-layer interactive-layer"
                 onClick={() => setShowSalaryModal(true)}
+                role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setShowSalaryModal(true); } } }
               >
                 <div className="layer-icon-box green">
                   <BanknoteIcon />
@@ -464,6 +476,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             </div>
           </div>
         )}
+
+        {performanceError ? <div className="error-banner" role="alert">{performanceError}</div> : <DriverPerformance data={performance} loading={loading} onAddRide={addRide} onEditDriver={id => { setDriverToEdit(drivers.find(driver => driver.id === id)); setShowDriverModal(true); }} />}
 
         <section className="manifest-section">
           <div className="table-header">
@@ -484,18 +498,18 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 const isExpanded = expandedDates.has(day.date);
                 return (
                   <article className={`manifest-day ${isExpanded ? 'expanded' : ''}`} key={day.date}>
-                    <div className="manifest-date" onClick={() => toggleDate(day.date)} role="button">
+                    <button type="button" className="manifest-date" onClick={() => toggleDate(day.date)} aria-expanded={isExpanded}>
                       <div className="date-text">
                         <strong>{formatSheetDate(day.date)}</strong>
                         <span>{formatWeekday(day.date)}</span>
                       </div>
                       <span className="expand-icon">{isExpanded ? '−' : '+'}</span>
-                    </div>
+                    </button>
                     {isExpanded && (
                       <div className="manifest-content">
                         <div className="manifest-note">NOTE</div>
                         {day.rows.map(row => (
-                          <DriverManifest key={`${row.driver_id}-${row.date}`} row={row} />
+                          <DriverManifest key={`${row.driver_id}-${row.date}`} row={row} onEditRide={editRide} onAddRide={() => addRide(row.driver_id)} />
                         ))}
                       </div>
                     )}
@@ -544,40 +558,24 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             <ChargingDetailsPanel
               charges={stats?.charging_details || []}
               onClose={() => setShowChargesModal(false)}
-              onAddCharge={() => setShowAddChargeModal(true)}
+              onAddCharge={() => { setEditingCharge(null); setShowChargesModal(false); setShowAddChargeModal(true); }}
+              onEditCharge={charge => { setEditingCharge(charge); setShowChargesModal(false); setShowAddChargeModal(true); }}
             />
           </div>
         </div>
       )}
 
-      {showAddChargeModal && (
-        <AddChargeModal
-          drivers={drivers}
-          vehicles={vehicles}
-          onClose={() => setShowAddChargeModal(false)}
-          onSuccess={() => {
-            setShowAddChargeModal(false);
-            fetchAll();
-          }}
-        />
-      )}
-
-      {showDriverModal && (
-        <AddDriverModal
-          onClose={() => setShowDriverModal(false)}
-          onSuccess={() => {
-            setShowDriverModal(false);
-            fetchAll();
-          }}
-        />
-      )}
+      {showRideModal && <RideModal ride={editingRide} initialDriver={initialDriver} drivers={drivers} companies={companies} vehicles={vehicles} onClose={() => setShowRideModal(false)} onSuccess={() => { setShowRideModal(false); changed('Ride saved. Attendance and earnings updated.'); }} />}
+      {showAddChargeModal && <ChargeModal charge={editingCharge} drivers={drivers} vehicles={vehicles} onClose={() => setShowAddChargeModal(false)} onSuccess={() => { setShowAddChargeModal(false); changed('Charging details saved.'); }} />}
+      {showRecordAdvance && <AdvanceModal drivers={drivers} onClose={() => setShowRecordAdvance(false)} onSuccess={() => { setShowRecordAdvance(false); changed('Salary advance recorded.'); }} />}
+      {showDriverModal && <DriverManagement initialDriver={driverToEdit} drivers={drivers} vehicles={vehicles} onClose={() => setShowDriverModal(false)} onSuccess={async () => { await fetchLookups(); changed('Driver records updated.'); }} />}
 
       {showCompanyModal && (
         <AddCompanyModal
           onClose={() => setShowCompanyModal(false)}
           onSuccess={() => {
             setShowCompanyModal(false);
-            fetchAll();
+            fetchLookups(); fetchAll();
           }}
         />
       )}
@@ -587,7 +585,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
           onClose={() => setShowVehicleModal(false)}
           onSuccess={() => {
             setShowVehicleModal(false);
-            fetchAll();
+            fetchLookups(); fetchAll();
           }}
         />
       )}
@@ -606,109 +604,6 @@ export default function AdminDashboard({ toggleTheme, theme }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function AddDriverModal({ onClose, onSuccess }) {
-  const [form, setForm] = useState({ username: '', password: '', name: '', phone: '', email: '' });
-  const [loading, setLoading] = useState(false);
-  const [localError, setLocalError] = useState('');
-
-  const hasPhone = form.phone.trim().length > 0;
-  const hasEmail = form.email.trim().length > 0;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!hasPhone && !hasEmail) {
-      setLocalError('Please provide at least a phone number or email.');
-      return;
-    }
-    setLocalError('');
-    setLoading(true);
-    try {
-      await adminAPI.createDriver(form);
-      onSuccess();
-    } catch (err) {
-      alert('Failed to add driver: ' + (err.response?.data?.detail || JSON.stringify(err.response?.data) || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Add New Driver</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-        <form onSubmit={handleSubmit} className="modal-form">
-          {localError && <div className="error-banner">{localError}</div>}
-          <div className="form-group">
-            <label>Full Name</label>
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={e => { setForm({ ...form, name: e.target.value }); setLocalError(''); }}
-              placeholder="e.g. John Doe"
-            />
-          </div>
-          <div className="form-group">
-            <label>Username (for login)</label>
-            <input
-              type="text"
-              required
-              value={form.username}
-              onChange={e => { setForm({ ...form, username: e.target.value }); setLocalError(''); }}
-              placeholder="e.g. johndoe123"
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              required
-              value={form.password}
-              onChange={e => { setForm({ ...form, password: e.target.value }); setLocalError(''); }}
-              placeholder="Min 6 characters"
-              minLength={6}
-            />
-          </div>
-          <div className="contact-hint-inline">
-            <span className="hint-icon">ℹ</span> At least one of phone or email is required
-          </div>
-          <div className="form-group">
-            <label>
-              Phone{!hasEmail && <span className="required-dot" title="Required when email is empty">*</span>}
-            </label>
-            <input
-              type="text"
-              value={form.phone}
-              onChange={e => { setForm({ ...form, phone: e.target.value }); setLocalError(''); }}
-              placeholder="e.g. 9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>
-              Email{!hasPhone && <span className="required-dot" title="Required when phone is empty">*</span>}
-            </label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={e => { setForm({ ...form, email: e.target.value }); setLocalError(''); }}
-              placeholder="e.g. john@email.com"
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Driver'}
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }
@@ -832,22 +727,7 @@ function AddVehicleModal({ onClose, onSuccess }) {
   );
 }
 
-function MetricCard({ tone, value, label, subtitle, icon }) {
-  return (
-    <div className={`metric-card ${tone}`}>
-      <div className="metric-icon-wrap">
-        <span className="metric-icon">{icon}</span>
-      </div>
-      <div className="metric-content">
-        <div className="metric-value">{value}</div>
-        <div className="metric-label">{label}</div>
-        {subtitle && <div className="metric-subtitle">{subtitle}</div>}
-      </div>
-    </div>
-  );
-}
-
-function DriverManifest({ row }) {
+function DriverManifest({ row, onEditRide, onAddRide }) {
   const rideRows = row.rides?.length ? row.rides : Array.from({ length: Math.max(row.total_rides, 1) }, () => null);
   const displayRows = padRows(rideRows, Math.max(7, rideRows.length));
 
@@ -867,7 +747,7 @@ function DriverManifest({ row }) {
   return (
     <div className="driver-manifest">
       <div className="driver-manifest-title">
-        <span>Driver Name: {row.driver_name}</span>
+        <span>Driver Name: {row.driver_name}</span><button className="text-action" onClick={onAddRide}>+ Add ride</button>
         <span className={`attendance-badge ${statusClass}`}>{statusLabel}</span>
       </div>
 
@@ -881,7 +761,7 @@ function DriverManifest({ row }) {
               <th>Time</th>
               <th>Route</th>
               <th>Total km</th>
-              <th>Vehicle</th>
+              <th>Vehicle</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -901,7 +781,7 @@ function DriverManifest({ row }) {
                   )}
                 </td>
                 <td>{ride?.total_km ? Number(ride.total_km).toLocaleString('en-IN') : ''}</td>
-                <td>{ride?.vehicle_number || ''}</td>
+                <td>{ride?.vehicle_number || ''}</td><td>{ride && <button className="text-action" aria-label={`Edit ride ${index + 1} for ${row.driver_name}`} onClick={() => onEditRide(ride)}>Edit</button>}</td>
               </tr>
             ))}
           </tbody>
@@ -914,7 +794,7 @@ function DriverManifest({ row }) {
         ) : rideRows.filter(Boolean).map((ride, index) => (
           <div className="manifest-ride-card" key={ride.id}>
             <div className="manifest-card-top">
-              <strong>#{index + 1} {ride.company_name || 'Client'}</strong>
+              <strong>#{index + 1} {ride.company_name || 'Client'}</strong><button className="text-action" aria-label={`Edit ride ${index + 1} for ${row.driver_name}`} onClick={() => onEditRide(ride)}>Edit</button>
               <span className="trip-badge">{ride.trip_type || 'P'}</span>
             </div>
             <div className="manifest-route">{formatRoute(ride)}</div>
@@ -969,6 +849,7 @@ function formatRoute(ride) {
 }
 
 function formatDate(dateStr) {
+  if (!dateStr) return 'Select date';
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric'
   });
@@ -1137,7 +1018,7 @@ function AdvancePaidDetailsPanel({ details, onClose }) {
   );
 }
 
-function ChargingDetailsPanel({ charges, onClose, onAddCharge }) {
+function ChargingDetailsPanel({ charges, onClose, onAddCharge, onEditCharge }) {
   return (
     <section className="charging-panel">
       <div className="charging-panel-header">
@@ -1167,7 +1048,7 @@ function ChargingDetailsPanel({ charges, onClose, onAddCharge }) {
               </div>
               <div className="charging-card-meta">
                 <span>{formatDate(charge.date)}</span>
-                <span>{charge.time}</span>
+                <span>{charge.time ? formatTime(charge.time) : ''}</span><button className="text-action" aria-label={`Edit charge for ${charge.driver_name}`} onClick={() => onEditCharge(charge)}>Edit charge</button>
               </div>
             </div>
           ))}
@@ -1187,6 +1068,7 @@ function MonthlyReportModal({ onClose, companies = [] }) {
   // Set default to last month
   const getPrevMonthAndYear = () => {
     const d = new Date();
+    d.setDate(1);
     d.setMonth(d.getMonth() - 1);
     return {
       month: d.getMonth() + 1,
@@ -1265,6 +1147,7 @@ function MonthlyReportModal({ onClose, companies = [] }) {
         adminAPI.getReports(params),
         adminAPI.getDashboard(params),
       ]);
+      const { generateMonthlyCompanyPdfReport } = await import('../utils/generateAdminPdfReport');
       await generateMonthlyCompanyPdfReport({
         month: Number(month),
         year: Number(year),
@@ -1322,160 +1205,6 @@ function MonthlyReportModal({ onClose, companies = [] }) {
   );
 }
 
-function AddChargeModal({ drivers, vehicles, onClose, onSuccess }) {
-  const [formData, setFormData] = useState({
-    driver_id: '',
-    date: new Date().toLocaleDateString('en-CA'),
-    app_used: '',
-    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-    place: '',
-    vehicle_number: '',
-    charge_amount: ''
-  });
-  const [isOtherApp, setIsOtherApp] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const payload = {
-        date: formData.date,
-        app_used: formData.app_used,
-        time: formData.time,
-        place: formData.place,
-        vehicle_number: formData.vehicle_number,
-        charge_amount: parseFloat(formData.charge_amount),
-      };
-      if (formData.driver_id) {
-        payload.driver = formData.driver_id;
-      }
-      await adminAPI.createCharge(payload);
-      onSuccess();
-    } catch (err) {
-      alert('Failed to add charge: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Add Charge</h3>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-group">
-            <label>Driver (Optional)</label>
-            <select
-              value={formData.driver_id}
-              onChange={e => setFormData({ ...formData, driver_id: e.target.value })}
-            >
-              <option value="">-- No Driver specified --</option>
-              {drivers.map(d => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Date</label>
-            <input
-              type="date"
-              required
-              value={formData.date}
-              onChange={e => setFormData({ ...formData, date: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label>App Used</label>
-            <select
-              required
-              value={isOtherApp ? 'Other' : formData.app_used}
-              onChange={e => {
-                const val = e.target.value;
-                setIsOtherApp(val === 'Other');
-                setFormData({ ...formData, app_used: val === 'Other' ? '' : val });
-              }}
-            >
-              <option value="">Select App</option>
-              <option value="Tata Power">Tata Power</option>
-              <option value="Zeon Charging">Zeon Charging</option>
-              <option value="Chargemod">Chargemod</option>
-              <option value="Statiq">Statiq</option>
-              <option value="Thunder+">Thunder+</option>
-              <option value="GoEc">GoEc</option>
-              <option value="ANERTEV">ANERTEV</option>
-              <option value="ESYGO">ESYGO</option>
-              <option value="KSEB-KEMApp">KSEB-KEMApp</option>
-              <option value="Other">Other</option>
-            </select>
-            {isOtherApp && (
-              <input
-                type="text"
-                required
-                placeholder="Enter custom app name"
-                value={formData.app_used}
-                onChange={e => setFormData({ ...formData, app_used: e.target.value })}
-                style={{ marginTop: '0.5rem' }}
-              />
-            )}
-          </div>
-          <div className="form-group">
-            <label>Time</label>
-            <input
-              type="time"
-              required
-              value={formData.time}
-              onChange={e => setFormData({ ...formData, time: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label>Place</label>
-            <input
-              type="text"
-              required
-              placeholder="Charging location"
-              value={formData.place}
-              onChange={e => setFormData({ ...formData, place: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label>Vehicle</label>
-            <select
-              required
-              value={formData.vehicle_number}
-              onChange={e => setFormData({ ...formData, vehicle_number: e.target.value })}
-            >
-              <option value="">Select Vehicle</option>
-              {vehicles.map(v => (
-                <option key={v.id} value={v.number}>{v.number}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Amount (₹)</label>
-            <input
-              type="number"
-              required
-              min="0"
-              step="0.01"
-              value={formData.charge_amount}
-              onChange={e => setFormData({ ...formData, charge_amount: e.target.value })}
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add Charge'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 function formatSalaryDate(value) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1517,6 +1246,7 @@ function DriverSalaryPanel({ onClose }) {
     if (!summary) return;
     setExporting(true);
     try {
+      const { generateAdminSalaryPdfReport } = await import('../utils/generateSalaryPdfReport');
       await generateAdminSalaryPdfReport(summary);
     } catch (err) {
       alert('PDF export failed: ' + (err.message || 'Unable to generate report'));

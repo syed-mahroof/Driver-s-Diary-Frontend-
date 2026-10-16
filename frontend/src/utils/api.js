@@ -6,6 +6,7 @@ const api = axios.create({
   baseURL: `${BASE_URL}/api`,
   headers: { 'Content-Type': 'application/json' },
 });
+let refreshPromise = null;
 
 // Attach token
 api.interceptors.request.use((config) => {
@@ -21,17 +22,25 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true;
       const refresh = localStorage.getItem('refresh_token');
       if (refresh) {
         try {
-          const { data } = await axios.post(`${BASE_URL}/api/token/refresh/`, { refresh });
-          localStorage.setItem('access_token', data.access);
+          if (!refreshPromise) {
+            refreshPromise = axios.post(`${BASE_URL}/api/token/refresh/`, { refresh }).then(({ data }) => {
+              localStorage.setItem('access_token', data.access);
+              if (data.refresh) localStorage.setItem('refresh_token', data.refresh);
+              return data;
+            }).finally(() => { refreshPromise = null; });
+          }
+          const data = await refreshPromise;
           original.headers.Authorization = `Bearer ${data.access}`;
           return api(original);
         } catch {
-          localStorage.clear();
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user');
           window.location.href = '/login';
         }
       }
@@ -77,13 +86,20 @@ export const driverAPI = {
 };
 
 export const adminAPI = {
-  getDashboard: (filters = {}) => api.get('/admin/dashboard/', { params: filters }),
+  getDashboard: (filters = {}, config = {}) => api.get('/admin/dashboard/', { ...config, params: filters }),
+  getPerformance: (filters = {}, config = {}) => api.get('/admin/performance/', { ...config, params: filters }),
   getSalarySummary: () => api.get('/admin/salary-summary/'),
-  getDrivers: () => api.get('/admin/drivers/'),
+  getDrivers: () => api.get('/admin/drivers/', { params: { include_inactive: 'true' } }),
   createDriver: (data) => api.post('/admin/drivers/create/', data),
+  updateDriver: (id, data) => api.patch(`/admin/drivers/${id}/`, data),
+  deleteDriver: (id) => api.delete(`/admin/drivers/${id}/`),
+  createRide: (data) => api.post('/admin/rides/create/', data),
+  updateRide: (id, data) => api.patch(`/admin/rides/${id}/`, data),
+  updateCharge: (id, data) => api.patch(`/admin/charge/${id}/`, data),
+  createAdvance: (data) => api.post('/admin/advance-salary/create/', data),
   getCompanies: () => api.get('/companies/'),
   createCompany: (data) => api.post('/companies/create/', data),
-  getReports: (filters = {}) => api.get('/reports/', { params: filters }),
+  getReports: (filters = {}, config = {}) => api.get('/reports/', { ...config, params: filters }),
   exportExcel: (filters = {}) => api.get('/export-excel/', {
     params: filters,
     responseType: 'blob',
