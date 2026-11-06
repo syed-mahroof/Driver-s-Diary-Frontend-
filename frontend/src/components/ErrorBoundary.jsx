@@ -12,6 +12,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error", error, errorInfo);
+    window.__hidePreloader?.();
   }
 
   handleReset = async () => {
@@ -30,15 +31,11 @@ class ErrorBoundary extends React.Component {
         await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
       
-      // Clear IndexedDB completely
-      window.indexedDB.deleteDatabase("cabservice-offline");
-      
-      // Hard refresh
-      window.location.reload(true);
+      // IndexedDB stays: it holds rides saved offline that have not synced yet.
+      window.location.reload();
     } catch (err) {
       console.error("Failed to clear app data:", err);
-      // Fallback reload if clearing fails
-      window.location.reload(true);
+      window.location.reload();
     }
   };
 
@@ -50,32 +47,31 @@ class ErrorBoundary extends React.Component {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100vh',
-          backgroundColor: '#0f172a',
-          color: '#f8fafc',
+          minHeight: '100dvh',
+          backgroundColor: '#0f1117',
+          color: '#f1f5f9',
           fontFamily: 'system-ui, -apple-system, sans-serif',
           textAlign: 'center',
           padding: '20px'
         }}>
-          <h1 style={{ marginBottom: '10px', fontSize: '1.875rem', fontWeight: 'bold' }}>App Update Detected</h1>
+          <h1 style={{ marginBottom: '10px', fontSize: '1.5rem', fontWeight: 700 }}>Something went wrong</h1>
           <p style={{ marginBottom: '30px', color: '#94a3b8', maxWidth: '400px' }}>
-            We've detected an update or a temporary issue. Please clear the cache to continue using the app.
+            Reloading usually fixes this. Rides saved offline are kept.
           </p>
           <button 
             onClick={this.handleReset}
             style={{
               padding: '12px 24px',
               fontSize: '1rem',
-              backgroundColor: '#3b82f6',
-              color: 'white',
+              backgroundColor: '#10b981',
+              color: '#052e23',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontWeight: '600',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              fontWeight: 600
             }}
           >
-            Clear App Cache & Reload
+            Reload app
           </button>
         </div>
       );

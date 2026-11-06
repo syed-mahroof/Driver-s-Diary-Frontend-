@@ -11,18 +11,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  background: rgba(148, 163, 184, 0.10);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background: var(--surface-header);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 10;
   gap: 0.5rem;
-}
-
-[data-theme="light"] .driver-header {
-  border-bottom-color: rgba(15, 23, 42, 0.08);
 }
 
 .dropdown-item svg {
@@ -70,23 +66,6 @@
   gap: 0.5rem;
   flex-shrink: 0;
 }
-
-/* Removed status-badge since we now use status-dot in the welcome section */
-
-.sync-btn {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.3rem 0.7rem;
-  background: rgba(59,130,246,0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(59,130,246,0.3);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  min-height: 36px;
-}
-
-.sync-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Main */
 .driver-main {
@@ -319,7 +298,6 @@
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -459,15 +437,6 @@
    touch targets, and high-contrast labels for outdoor/sunlight glare.
    Scoped to .driver-page so it never touches AdminDashboard's shared
    .form-group / .modal-card / .btn-submit markup. */
-.driver-page {
-  --neu-dark: rgba(0, 0, 0, 0.55);
-  --neu-light: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="light"] .driver-page {
-  --neu-dark: rgba(148, 163, 184, 0.5);
-  --neu-light: rgba(255, 255, 255, 0.95);
-}
 
 .driver-page .modal-card .form-group label {
   color: var(--text-primary);
@@ -479,7 +448,6 @@
 .driver-page .modal-card .form-group textarea {
   min-height: 48px;
   font-weight: 500;
-  box-shadow: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -488,99 +456,64 @@
 .driver-page .modal-card .form-group textarea:focus,
 .driver-page .modal-card .form-group input:active,
 .driver-page .modal-card .form-group select:active {
-  box-shadow: inset 3px 3px 8px var(--neu-dark), inset -3px -3px 8px var(--neu-light);
   border-color: var(--accent);
 }
 
 /* Segmented toggle (trip type / seater) */
 .driver-page .trip-type-toggle {
   height: 48px;
-  box-shadow: 3px 3px 8px var(--neu-dark), -3px -3px 8px var(--neu-light);
-}
-
-.driver-page .toggle-option.active {
-  box-shadow: inset 2px 2px 6px var(--neu-dark), inset -1px -1px 3px var(--neu-light);
 }
 
 /* Quick-action utility tiles */
 .driver-page .add-ride-btn,
 .driver-page .add-charge-btn {
-  box-shadow: 5px 5px 14px var(--neu-dark), -5px -5px 14px var(--neu-light);
   transition: box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .driver-page .add-ride-btn:active,
 .driver-page .add-charge-btn:active {
-  box-shadow: inset 4px 4px 10px var(--neu-dark), inset -4px -4px 10px var(--neu-light);
   transform: scale(0.97);
 }
 
 .driver-page .modal-card .btn-submit,
 .driver-page .modal-card .btn-cancel {
   min-height: 48px;
-  box-shadow: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
   transition: box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .driver-page .modal-card .btn-submit:active,
 .driver-page .modal-card .btn-cancel:active {
-  box-shadow: inset 3px 3px 8px var(--neu-dark), inset -3px -3px 8px var(--neu-light);
   transform: scale(0.98);
 }
 
 .driver-page .modal-close {
-  min-width: 48px;
-  min-height: 48px;
-  border-radius: var(--radius-sm);
-  box-shadow: 3px 3px 8px var(--neu-dark), -3px -3px 8px var(--neu-light);
-}
-
-.driver-page .modal-close:active {
-  box-shadow: inset 2px 2px 6px var(--neu-dark), inset -2px -2px 6px var(--neu-light);
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  line-height: 1;
 }
 
 /* ── Complete Statistics modal ───────────────────────────────────────── */
-.stats-trigger-btn {
-  width: 100%;
-  margin-bottom: 1rem;
+.dashboard-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1.5rem; }
+.dashboard-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  background: #7c3aed;
-  color: #fff;
-  transition: opacity 0.2s, transform 0.08s;
+  gap: .5rem;
+  min-height: 52px;
+  padding: .75rem;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
 }
-
-.stats-trigger-btn:active {
-  transform: scale(0.98);
-}
+.dashboard-link svg { flex-shrink: 0; }
 
 /* ── Salary Statement trigger + modal ────────────────────────────────── */
-.salary-trigger-btn {
-  width: 100%;
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: #15803d;
-  color: #fff;
-  transition: opacity 0.2s, transform 0.08s;
-}
-
-.salary-trigger-btn:active {
-  transform: scale(0.98);
-}
-
-.salary-trigger-btn span {
-  margin-left: auto;
-  font-size: 0.66rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  opacity: 0.85;
-}
 
 .salary-modal {
   max-width: 460px;
@@ -602,7 +535,7 @@
   flex-direction: column;
   gap: 0.75rem;
   background: var(--bg-card2);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 0.85rem 0.85rem 1rem;
 }
 
@@ -621,7 +554,7 @@
 }
 
 .salary-cycle-status {
-  font-size: 0.68rem;
+  font-size: .7rem;
   color: var(--text-muted);
 }
 
@@ -638,7 +571,7 @@
   row-gap: 0.05rem;
   padding: 0.4rem 0.5rem;
   background: var(--bg-input);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
 }
 
@@ -651,7 +584,7 @@
 .salary-breakdown-detail {
   grid-area: detail;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: .7rem;
 }
 
 .salary-breakdown-amount {
@@ -708,7 +641,7 @@
   align-items: center;
   gap: 0.5rem;
   background: linear-gradient(155deg, var(--bg-card2), var(--bg-card));
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
 }
 
@@ -783,8 +716,6 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-sm);
   padding: 0.6rem 0.4rem;
-  backdrop-filter: blur(8px) saturate(160%);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
 }
 
 .stats-modal-pill-value {
@@ -796,7 +727,7 @@
 }
 
 .stats-modal-pill-label {
-  font-size: 0.6rem;
+  font-size: .7rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -805,7 +736,7 @@
 }
 
 .stats-modal-pill-sub {
-  font-size: 0.62rem;
+  font-size: .7rem;
   color: var(--text-secondary);
 }
 
@@ -828,7 +759,7 @@
 .stats-modal-pace-tile {
   flex: 1;
   background: var(--bg-card2);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
   text-align: center;
 }
@@ -843,7 +774,7 @@
 
 .stats-modal-pace-label {
   display: block;
-  font-size: 0.68rem;
+  font-size: .7rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
 }
@@ -871,7 +802,7 @@
 
 .stats-modal-stat {
   background: var(--bg-card2);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.85rem;
   text-align: center;
 }
@@ -1029,11 +960,7 @@
     font-size: 0.95rem;
   }
 
-  .logout-btn,
-  .sync-btn,
-  .status-badge {
-    min-height: 34px;
-  }
+  
 
   .driver-main {
     padding: 1rem 0.9rem 2rem;
@@ -1139,7 +1066,7 @@
   }
 
   .stat-label {
-    font-size: 0.65rem;
+    font-size: .7rem;
   }
 
   .stat-value {
@@ -1176,7 +1103,7 @@
 [data-theme="light"] .unified-stats-card.red .status-text { color: #dc2626; }
 
 [data-theme="light"] .unified-stats-card.yellow .stat-value:not(.status-text),
-[data-theme="light"] .unified-stats-card.yellow .status-text { color: #65a30d; }
+[data-theme="light"] .unified-stats-card.yellow .status-text { color: #b45309; }
 
 [data-theme="light"] .unified-stats-card.light-green .stat-value:not(.status-text),
 [data-theme="light"] .unified-stats-card.light-green .status-text { color: #059669; }
@@ -1200,7 +1127,7 @@
 }
 
 .mixed-usage-badge {
-  font-size: 0.65rem;
+  font-size: .7rem;
   font-weight: 700;
   background: #f59e0b;
   color: #000;
@@ -1229,7 +1156,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   flex-shrink: 0;
 }
 
@@ -1253,7 +1180,6 @@
   position: fixed;
   inset: 0;
   background: rgba(15, 17, 23, 0.85);
-  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1469,7 +1395,7 @@
   font-size: 1rem;
   width: 100%;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
@@ -1487,7 +1413,6 @@
 [data-theme="light"] .charge-success-btn {
   color: #fff;
 }
-
 
 /* ═══════════════════════════════════════════════════════
    EARNINGS TRACKER — Live Earnings & Target Gamification
@@ -1507,9 +1432,6 @@
   gap: 1rem;
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1517,13 +1439,12 @@
 
 [data-theme="light"] .earnings-tracker {
   border-color: rgba(15, 23, 42, 0.10);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* Tier tint — background only; border stays a neutral frosted edge */
-.earnings-tracker.et-danger   { background: rgba(248, 113, 113, 0.10); }
-.earnings-tracker.et-warning  { background: rgba(234, 179, 8, 0.10); }
-.earnings-tracker.et-on-track { background: rgba(16, 185, 129, 0.10); }
+.earnings-tracker.et-danger   { background: rgba(248, 113, 113, 0.05); }
+.earnings-tracker.et-warning  { background: rgba(234, 179, 8, 0.05); }
+.earnings-tracker.et-on-track { background: rgba(16, 185, 129, 0.05); }
 .earnings-tracker.et-gold     { background: rgba(251, 191, 36, 0.12); }
 
 /* Gold-state card gets a warm glow border on top of the gold tint */
@@ -1666,7 +1587,7 @@
 }
 
 .et-center-pct {
-  font-size: 0.62rem;
+  font-size: .7rem;
   font-weight: 600;
   color: var(--text-secondary);
   line-height: 1;
@@ -1695,7 +1616,7 @@
 }
 
 .et-label-target {
-  font-size: 0.65rem;
+  font-size: .7rem;
   color: var(--text-muted);
 }
 
@@ -1717,16 +1638,14 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.4rem;
-  backdrop-filter: blur(8px) saturate(160%);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .et-pill-interactive:hover { transform: translateY(-1px); }
 .et-pill-interactive:active { transform: translateY(0) scale(0.97); }
 
 .et-pill-label {
-  font-size: 0.6rem;
+  font-size: .7rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -1741,9 +1660,6 @@
   color: var(--text-primary);
   white-space: nowrap;
 }
-
-.et-pill.et-pill-bonus .et-pill-value { color: #fbbf24; }
-.et-pill.et-pill-bonus { border-color: rgba(251,191,36,0.2); }
 
 /* ── Bonus Countdown Alert ────────────────────── */
 .et-bonus-alert {
@@ -1810,19 +1726,19 @@
   }
 
   .et-center-amount {
-    font-size: 0.68rem;
+    font-size: .7rem;
   }
 
   .et-center-pct {
-    font-size: 0.58rem;
+    font-size: .7rem;
   }
 
   .et-label-title {
-    font-size: 0.65rem;
+    font-size: .7rem;
   }
 
   .et-label-target {
-    font-size: 0.58rem;
+    font-size: .7rem;
   }
 
   .et-breakdown {
@@ -1842,7 +1758,7 @@
   }
 
   .et-center-amount {
-    font-size: 0.6rem;
+    font-size: .7rem;
   }
 }
 
@@ -1859,14 +1775,9 @@
   stroke: #ca8a04;
 }
 
+/* A working signal seen all day, so it stays calm rather than alarming. */
 .et-daily-deficit-border {
-  border: 1px solid #ef4444 !important;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.15) !important;
-}
-
-[data-theme="light"] .et-daily-deficit-border {
-  border-color: #dc2626 !important;
-  box-shadow: 0 0 10px rgba(220, 38, 38, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
 }
 
 [data-theme="light"] .et-pill {
@@ -1888,10 +1799,6 @@
   color: #b45309;
 }
 
-[data-theme="light"] .et-pill.et-pill-bonus .et-pill-value {
-  color: #b45309;
-}
-
 /* Achievement Tracker — neon inner-glow matches each tier's accent color */
 @keyframes softPulse {
   0%   { box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.25), 0 0 0 0 rgba(16, 185, 129, 0.4); }
@@ -1902,12 +1809,11 @@
 .et-deficit {
   border-color: rgba(239, 68, 68, 0.35) !important;
   background: rgba(239, 68, 68, 0.08) !important;
-  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.28), 0 0 10px rgba(239, 68, 68, 0.15) !important;
+  box-shadow: none !important;
 }
 
 .et-deficit .et-pill-value {
   color: #ef4444 !important;
-  text-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
 }
 
 .et-surplus {
@@ -1943,9 +1849,7 @@
 .et-motivation-toast {
   background: rgba(251, 191, 36, 0.15);
   border: 1px solid rgba(251, 191, 36, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   margin-top: 0.5rem;
   display: flex;
@@ -1991,12 +1895,10 @@
 
 /* -- Daily Goal Tag (Inline, lightweight) ------------------------------ */
 .et-daily-goal-tag {
-  font-size: 0.65rem;
+  font-size: .7rem;
   font-weight: 700;
   color: #fbbf24;
   background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   border: 1px solid rgba(251, 191, 36, 0.3);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
@@ -2051,3 +1953,6 @@
    every other green/red element on the page already uses. */
 [data-theme="light"] .stats-modal-achievement.et-deficit { color: var(--accent-red); }
 [data-theme="light"] .stats-modal-achievement.et-surplus { color: var(--accent-green); }
+
+/* One clear primary action (Add Ride); Add Charge keeps its blue as a lighter tint beside it. */
+.action-buttons-grid { margin-bottom: 1.5rem; }

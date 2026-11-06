@@ -80,7 +80,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     return () => clearTimeout(timer);
   }, [successMsg]);
 
-  const [form, setForm] = useState({
+  const emptyRideForm = (vehicleNumber = '') => ({
     date: localToday(),
     company: '',
     ride_time: '',
@@ -88,8 +88,16 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     route: '',
     notes: '',
     total_km: '',
-    vehicle_number: '',
+    vehicle_number: vehicleNumber,
   });
+  const [form, setForm] = useState(() => emptyRideForm());
+
+  const closeRideForm = () => {
+    setShowForm(false);
+    setEditingRide(null);
+    setForm(emptyRideForm(dashboard?.default_vehicle_number || ''));
+    setSeaterType(dashboard?.default_seater || 4);
+  };
 
   const [chargeForm, setChargeForm] = useState({
     date: localToday(),
@@ -157,6 +165,12 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   }, [showChargeForm, dashboard]);
 
   useEffect(() => { if (lastSynced) fetchDashboard(); }, [lastSynced, fetchDashboard]);
+
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden) fetchDashboard(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchDashboard]);
 
   const getFilteredTimesForState = (stateObj) => {
     if (!stateObj.company) {
@@ -300,19 +314,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
         );
       }
 
-      setForm({
-        date: localToday(),
-        company: '',
-        ride_time: '',
-        trip_type: 'P',
-        route: '',
-        notes: '',
-        total_km: '',
-        vehicle_number: dashboard?.default_vehicle_number || '',
-      });
-      if (dashboard) setSeaterType(dashboard.default_seater || 4);
-      setShowForm(false);
-      setEditingRide(null);
+      closeRideForm();
     } catch (err) {
       alert('Failed to save ride: ' + (err.response?.data?.detail || err.message));
     } finally {
@@ -328,22 +330,9 @@ export default function DriverDashboard({ toggleTheme, theme }) {
     e.preventDefault();
     setSubmittingCharge(true);
     try {
-      if (isOnline) {
-        const savedData = {
-          date: chargeForm.date,
-          app_used: chargeForm.app_used,
-          time: chargeForm.time,
-          place: chargeForm.place,
-          vehicle_number: chargeForm.vehicle_number,
-          charge_amount: chargeForm.charge_amount,
-        };
-        await driverAPI.createCharge(savedData);
-        setLastSavedCharge(savedData);
-        setShowChargeSuccess(true);
-      } else {
-        alert('Offline saving for charge details is not yet supported. Please go online.');
-      }
-
+      await driverAPI.createCharge(chargeForm);
+      setLastSavedCharge(chargeForm);
+      setShowChargeSuccess(true);
       setChargeForm({
         date: localToday(),
         app_used: '',
@@ -525,7 +514,10 @@ export default function DriverDashboard({ toggleTheme, theme }) {
   let statusText = '';
   let progressTone = '';
 
-  if (rides === 0) {
+  if (!dashboard && loading) {
+    // Never flash a red "Not Started" before the real numbers arrive.
+    statusText = 'Loading';
+  } else if (rides === 0) {
     statusText = 'Not Started';
     progressTone = 'red';
   } else if (rides >= 1 && rides <= 3) {
@@ -556,7 +548,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             <button 
               className="menu-btn" 
               onClick={() => setMenuOpen(!menuOpen)}
-              title="Menu"
+              title="Menu" aria-label="Menu" aria-expanded={menuOpen}
             >
               ⋮
             </button>
@@ -642,7 +634,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           <div className="unified-stats-top">
             <div className="stat-box">
               <span className="stat-label">TODAY'S RIDES</span>
-              <span className="stat-value">{rides}</span>
+              <span className="stat-value">{!dashboard && loading ? '-' : rides}</span>
             </div>
             <div className="stat-box align-right">
               <span className="stat-label">STATUS</span>
@@ -669,32 +661,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
           </div>
         </div>
 
-        {/* Live Earnings & Target Tracker */}
-        {(dashboard || !isOnline) && (
-          <EarningsTracker dashboard={dashboard} isOnline={isOnline} />
-        )}
-
-        {/* Complete Statistics Button */}
-        {dashboard && (
-          <>
-            <button
-              className="btn-submit salary-trigger-btn"
-              onClick={() => setShowSalaryModal(true)}
-            >
-              <WalletIcon /> Salary Statement
-              <span>View &amp; export</span>
-            </button>
-            <button
-              className="btn-submit stats-trigger-btn"
-              onClick={() => setShowStatsModal(true)}
-            >
-              <StatsIcon /> Complete Statistics
-            </button>
-          </>
-        )}
-
         {/* Action Buttons */}
-
         <div className="action-buttons-grid">
           <button
             className="add-ride-btn"
@@ -703,34 +670,37 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             <PlusIcon /> Add Ride
           </button>
           <button
-            className="add-charge-btn"
+            className="add-charge-btn tint tint-blue"
             onClick={() => setShowChargeForm(true)}
           >
             <ZapIcon /> Add Charge
           </button>
         </div>
 
+        {/* Live Earnings & Target Tracker */}
+        {(dashboard || !isOnline) && (
+          <EarningsTracker dashboard={dashboard} isOnline={isOnline} />
+        )}
+
+        {/* Complete Statistics Button */}
+        {dashboard && (
+          <div className="dashboard-links">
+            <button className="dashboard-link tint tint-green" onClick={() => setShowSalaryModal(true)}>
+              <WalletIcon /> Salary statement
+            </button>
+            <button className="dashboard-link tint tint-violet" onClick={() => setShowStatsModal(true)}>
+              <StatsIcon /> Statistics
+            </button>
+          </div>
+        )}
+
         {/* Add Ride Form Modal */}
         {showForm && (
-          <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-overlay" onClick={closeRideForm}>
             <div className="modal-card" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>{editingRide ? 'Edit Ride' : 'Add New Ride'}</h3>
-                <button className="modal-close" onClick={() => {
-                  setShowForm(false);
-                  setEditingRide(null);
-                  setForm({
-                    date: localToday(),
-                    company: '',
-                    ride_time: '',
-                    trip_type: 'P',
-                    route: '',
-                    notes: '',
-                    total_km: '',
-                    vehicle_number: dashboard?.default_vehicle_number || '',
-                  });
-                  setSeaterType(dashboard?.default_seater || 4);
-                }}>x</button>
+                <button className="modal-close" aria-label="Close" onClick={closeRideForm}>&times;</button>
               </div>
 
               <form onSubmit={handleAddRide} className="ride-form">
@@ -758,7 +728,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
 
                 <div className="form-row compact">
                   <div className="form-group">
-                    <label>P/D</label>
+                    <label>Trip type</label>
                     <div className="trip-type-toggle">
                       <label className={`toggle-option ${form.trip_type === 'P' ? 'active' : ''}`}>
                         <input
@@ -790,6 +760,10 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       {getFilteredTimesForState(form).map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
                       ))}
+                      {/* An admin may have set a time outside the presets; editing must not lose it. */}
+                      {form.ride_time && !getFilteredTimesForState(form).some(t => t.value === form.ride_time) && (
+                        <option value={form.ride_time}>{formatTime(form.ride_time)}</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -885,21 +859,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                   <button
                     type="button"
                     className="btn-cancel"
-                    onClick={() => {
-                      setShowForm(false);
-                      setEditingRide(null);
-                      setForm({
-                        date: localToday(),
-                        company: '',
-                        ride_time: '',
-                        trip_type: 'P',
-                        route: '',
-                        notes: '',
-                        total_km: '',
-                        vehicle_number: dashboard?.default_vehicle_number || '',
-                      });
-                      setSeaterType(dashboard?.default_seater || 4);
-                    }}
+                    onClick={closeRideForm}
                   >
                     Cancel
                   </button>
@@ -922,7 +882,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
             <div className="modal-card" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Car Charge Details</h3>
-                <button className="modal-close" onClick={() => setShowChargeForm(false)}>x</button>
+                <button className="modal-close" aria-label="Close" onClick={() => setShowChargeForm(false)}>&times;</button>
               </div>
 
               <form onSubmit={handleAddCharge} className="ride-form">
@@ -1134,7 +1094,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       setForm({
                         date: ride.date,
                         company: ride.company || '',
-                        ride_time: ride.ride_time || '',
+                        ride_time: ride.ride_time?.slice(0, 5) || '',
                         trip_type: ride.trip_type,
                         route: ride.route || '',
                         notes: ride.notes || '',
@@ -1144,7 +1104,7 @@ export default function DriverDashboard({ toggleTheme, theme }) {
                       setSeaterType(ride.requested_seater || 4);
                       setShowForm(true);
                     }}
-                    title="Edit Ride"
+                    title="Edit Ride" aria-label="Edit ride"
                   >
                     <EditIcon />
                   </button>
@@ -1597,12 +1557,12 @@ function SalaryCycleBlock({ label, status, summary, rules }) {
       <div className="salary-breakdown-list">
         <div className="salary-breakdown-row">
           <span className="salary-breakdown-name">Standard ride earnings</span>
-          <span className="salary-breakdown-detail">{summary.standard_rides} rides &times; {fmt(rules.standard_ride_rate)}</span>
+          <span className="salary-breakdown-detail">{summary.standard_rides} rides &times; {fmtRate(rules.standard_ride_rate)}</span>
           <span className="salary-breakdown-amount">{fmt(summary.standard_ride_earnings)}</span>
         </div>
         <div className="salary-breakdown-row">
           <span className="salary-breakdown-name">Distance-based earnings</span>
-          <span className="salary-breakdown-detail">{Number(summary.special_kms || 0).toLocaleString('en-IN')} km &times; {fmt(rules.special_km_rate)}</span>
+          <span className="salary-breakdown-detail">{Number(summary.special_kms || 0).toLocaleString('en-IN')} km &times; {fmtRate(rules.special_km_rate)}</span>
           <span className="salary-breakdown-amount">{fmt(summary.distance_earnings)}</span>
         </div>
         <div className="salary-breakdown-row">
@@ -1711,7 +1671,6 @@ const BASE_TRIP_VALUE       = 20000 / 120;  // Rs 166.67 per standard trip
 const INCENTIVE_TRIP_VALUE  = 200;          // Rs 200 per trip above 120
 const SPECIAL_KM_RATE       = 3.5;          // Rs 3.5/km for Zellis/Dodge
 const DAILY_TARGET_SALARY   = 1000;         // Rs 1,000 target per day (6 trips)
-const CYCLE_LENGTH_DAYS     = 30;           // Fallback only, used if cycle_start/cycle_end are missing from the payload
 
 /** Counts Mon–Fri dates in [startISO, endISO], inclusive. Sat/Sun never earn (see backend Attendance model). */
 function countWeekdays(startISO, endISO) {
@@ -1801,6 +1760,11 @@ function fmt(n) {
   return '₹' + Math.round(n).toLocaleString('en-IN');
 }
 
+// Rates keep their paise: ₹3.5/km must not read as ₹4.
+function fmtRate(n) {
+  return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
 /**
  * computeEarnings — the single source of truth for the salary math.
  * Both EarningsTracker and StatisticsModal call this so the numbers they
@@ -1811,7 +1775,6 @@ function computeEarnings(dashboard) {
   const monthlyKms       = dashboard?.monthly_special_kms     ?? 0;
   const todayStd         = dashboard?.today_standard_rides    ?? 0;
   const todayKms         = dashboard?.today_special_kms       ?? 0;
-  const cycleDaysElapsed = dashboard?.cycle_days_elapsed      ?? 1;
 
   // Monthly
   const monthlyBaseEarnings      = monthlyStd * BASE_TRIP_VALUE;
@@ -1861,37 +1824,25 @@ function computeEarnings(dashboard) {
 
   let dailyAverage = 0;
   let projectedTotal = 0;
-  let cycleWorkingDaysTotal = 0;
-  let cycleWorkingDaysElapsed = 0;
-  let paceDaysElapsed = 0;
+  let avgTripsPerDay = 0;
 
   if (cycleStart && cycleEnd) {
     const todayISO = new Date().toLocaleDateString('en-CA');
     const elapsedThrough = todayISO < cycleEnd ? todayISO : cycleEnd;
-    cycleWorkingDaysTotal   = countWeekdays(cycleStart, cycleEnd);
-    cycleWorkingDaysElapsed = Math.max(1, countWeekdays(cycleStart, elapsedThrough));
-    dailyAverage   = monthlyTotal / cycleWorkingDaysElapsed;
-    projectedTotal = dailyAverage * cycleWorkingDaysTotal;
-    paceDaysElapsed = cycleWorkingDaysElapsed;
-  } else {
-    // Fallback for a stale cached dashboard payload predating cycle_start/cycle_end
-    dailyAverage   = cycleDaysElapsed > 0 ? monthlyTotal / cycleDaysElapsed : 0;
-    projectedTotal = dailyAverage * CYCLE_LENGTH_DAYS;
-    paceDaysElapsed = cycleDaysElapsed;
+    const workingDaysElapsed = Math.max(1, countWeekdays(cycleStart, elapsedThrough));
+    dailyAverage = monthlyTotal / workingDaysElapsed;
+    projectedTotal = dailyAverage * countWeekdays(cycleStart, cycleEnd);
+    // Same denominator as dailyAverage, so the two pace figures never disagree.
+    avgTripsPerDay = monthlyStd / workingDaysElapsed;
   }
 
-  // Trips banked per working day so far this cycle — same denominator as
-  // dailyAverage above, so the two pace figures never disagree with each other.
-  const avgTripsPerDay = paceDaysElapsed > 0 ? monthlyStd / paceDaysElapsed : 0;
-
   return {
-    monthlyStd, monthlyKms, todayStd, todayKms, cycleDaysElapsed,
+    monthlyStd, monthlyKms,
     monthlyBaseEarnings, monthlyKmEarnings, monthlyIncentiveTrips, monthlyIncentiveEarnings, monthlyTotal,
-    dailyBaseEarnings, dailyKmEarnings, dailyTotal,
+    dailyTotal,
     achievement, achievementFormatted, achievementClass,
     dailyPct, monthlyPct, dailyState, monthlyState, isGoldMonth, isDailyGold,
     tripsUntilBonus, showBonusAlert, dailyAverage, projectedTotal, avgTripsPerDay,
-    cycleWorkingDaysTotal, cycleWorkingDaysElapsed,
   };
 }
 
@@ -1920,14 +1871,19 @@ function EarningsTracker({ dashboard, isOnline }) {
   const [dailyMessage, setDailyMessage] = useState('');
 
   useEffect(() => {
+    // One-time sweep of the old per-day flags that older versions left behind.
+    Object.keys(localStorage).filter(key => /^(gold-celebrated|daily-goal)-.*-\d{4}-\d{2}-\d{2}$/.test(key)).forEach(key => localStorage.removeItem(key));
+  }, []);
+
+  useEffect(() => {
     const timers = [];
     const todayStr = new Date().toLocaleDateString('en-CA');
-    const storageKey = `gold-celebrated-${dashboard?.driver_name}-${todayStr}`;
+    const storageKey = `gold-celebrated-${dashboard?.driver_name}`;
 
     // Only fire if we transitioned from false -> true THIS session
     if (!prevIsGold.current && isGoldMonth) {
       // And only if we haven't already celebrated today (survives remounts)
-      if (!localStorage.getItem(storageKey)) {
+      if (localStorage.getItem(storageKey) !== todayStr) {
         
         // 1. Fire Confetti
         const goldColors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d']; 
@@ -1953,7 +1909,7 @@ function EarningsTracker({ dashboard, isOnline }) {
         setShowToast(true);
 
         // Mark as celebrated for today
-        localStorage.setItem(storageKey, 'true');
+        localStorage.setItem(storageKey, todayStr);
 
         // Auto dismiss after 4 seconds
         timers.push(setTimeout(() => setShowToast(false), 4000));
@@ -1962,9 +1918,9 @@ function EarningsTracker({ dashboard, isOnline }) {
     prevIsGold.current = isGoldMonth;
 
     // --- Daily Goal Celebration ---
-    const dailyStorageKey = `daily-goal-${dashboard?.driver_name}-${todayStr}`;
+    const dailyStorageKey = `daily-goal-${dashboard?.driver_name}`;
     if (!prevIsDailyGold.current && isDailyGold) {
-      if (!localStorage.getItem(dailyStorageKey)) {
+      if (localStorage.getItem(dailyStorageKey) !== todayStr) {
         try {
           const goldColors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d']; 
           confetti({
@@ -1996,7 +1952,7 @@ function EarningsTracker({ dashboard, isOnline }) {
         setShowDailyTag(true);
         timers.push(setTimeout(() => setShowDailyTag(false), 3500));
 
-        localStorage.setItem(dailyStorageKey, 'true');
+        localStorage.setItem(dailyStorageKey, todayStr);
       }
     }
     prevIsDailyGold.current = isDailyGold;
@@ -2008,7 +1964,7 @@ function EarningsTracker({ dashboard, isOnline }) {
       {/* ── Header ─────────────────────────────────────── */}
       <div className="et-header">
         <span className="et-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <WalletIcon style={{ width: '14px', height: '14px' }} /> LIVE EARNINGS
+          <WalletIcon /> LIVE EARNINGS
         </span>
         {isGoldMonth && (
           <span className="et-gold-badge">🏆 Gold Level!</span>

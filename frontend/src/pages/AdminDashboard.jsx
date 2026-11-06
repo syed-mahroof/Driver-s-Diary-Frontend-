@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { adminAPI } from '../utils/api';
 import '../styles/Admin.css';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import DriverPerformance from '../components/DriverPerformance';
-import { RideModal, ChargeModal, AdvanceModal, DriverManagement } from '../components/AdminTools';
+import { RideModal, DeleteRideModal, ChargeModal, AdvanceModal, DriverManagement } from '../components/AdminTools';
 import { filterParams } from '../utils/filters';
 import '../styles/AdminTools.css';
 
@@ -21,6 +21,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const requestRef = useRef(null);
   const [showRideModal, setShowRideModal] = useState(false);
   const [editingRide, setEditingRide] = useState(null);
+  const [deletingRide, setDeletingRide] = useState(null);
   const [initialDriver, setInitialDriver] = useState('');
   const [editingCharge, setEditingCharge] = useState(null);
   const [showRecordAdvance, setShowRecordAdvance] = useState(false);
@@ -46,6 +47,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   const [advanceRequests, setAdvanceRequests] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState(new Set());
+  // Open on desktop where there is room; a phone starts with the quick ranges and the manifest in reach.
+  const [filtersOpen, setFiltersOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
 
   const toggleDate = (date) => {
     setExpandedDates(prev => {
@@ -88,6 +91,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
   });
 
   const isActive = (start, end) => filters.start_date === start && filters.end_date === end;
+  const activeFilterCount = filters.driver_id.length + filters.company_id.length + filters.vehicle_number.length;
 
   const fetchLookups = useCallback(async () => {
     try {
@@ -140,16 +144,15 @@ export default function AdminDashboard({ toggleTheme, theme }) {
 
   useEffect(() => { fetchAdvanceRequests(); }, [fetchAdvanceRequests]);
 
+  // Reopening the app shows what changed meanwhile (new driver rides, Django admin edits).
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden) { fetchAll(); fetchAdvanceRequests(); } };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchAll, fetchAdvanceRequests]);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    if (value === 'ADD_NEW_DRIVER') {
-      setShowDriverModal(true);
-      return;
-    }
-    if (value === 'ADD_NEW_COMPANY') {
-      setShowCompanyModal(true);
-      return;
-    }
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
@@ -227,8 +230,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
 
   const groupedReports = useMemo(() => groupReportsByDate(reports), [reports]);
   const changed = (message) => { setNotice(message); fetchAll(); fetchAdvanceRequests(); };
-  const addRide = (driverId = '') => { setEditingRide(null); setInitialDriver(driverId); setShowRideModal(true); };
-  const editRide = (ride) => { setEditingRide(ride); setShowRideModal(true); };
+  const addRide = useCallback((driverId = '') => { setEditingRide(null); setInitialDriver(driverId); setShowRideModal(true); }, []);
+  const editRide = useCallback((ride) => { setEditingRide(ride); setShowRideModal(true); }, []);
 
   return (
     <div className="admin-page">
@@ -289,18 +292,61 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       </header>
 
       <main className="admin-main">
-        <div className="admin-workspace-heading"><div><span className="section-eyebrow">Admin workspace</span><h1>Fleet overview</h1><p>Manage driver records and track fleet activity.</p></div></div>
+        <div className="admin-workspace-heading"><h1>Fleet overview</h1></div>
         <div className="admin-quick-actions" aria-label="Admin actions">
           <button className="btn-submit" onClick={() => addRide()}>+ Add ride</button>
-          <button className="btn-cancel" onClick={() => { setEditingCharge(null); setShowAddChargeModal(true); }}>+ Add charge</button>
-          <button className="btn-cancel" onClick={() => setShowRecordAdvance(true)}>+ Record advance</button>
-          <button className="btn-cancel" onClick={() => { setDriverToEdit(undefined); setShowDriverModal(true); }}>Manage drivers</button>
+          <button className="btn-cancel tint tint-blue" onClick={() => { setEditingCharge(null); setShowAddChargeModal(true); }}>+ Add charge</button>
+          <button className="btn-cancel tint tint-teal" onClick={() => setShowRecordAdvance(true)}>+ Record advance</button>
+          <button className="btn-cancel tint tint-violet" onClick={() => { setDriverToEdit(undefined); setShowDriverModal(true); }}>Manage drivers</button>
         </div>
         {notice && <div className="success-banner" role="status">{notice}</div>}
         {fetchError && <div className="error-banner" role="alert">{fetchError}</div>}
         <div className="filter-panel">
-          <div className="section-heading"><h3 className="filter-title">Filters</h3><button className="text-action" onClick={() => setFilters(previous => ({ ...previous, driver_id: [], company_id: [], vehicle_number: [] }))}>Clear selections</button></div>
-          <p className="filter-hint">Select multiple options. Matches any selection within a filter and all filters together.</p>
+          <div className="quick-ranges">
+            <button
+              className={isActive(today, today) ? 'active' : ''}
+              onClick={() => setFilters(f => ({ ...f, start_date: today, end_date: today }))}
+            >
+              Today
+            </button>
+            <button
+              className={isActive(yesterday, yesterday) ? 'active' : ''}
+              onClick={() => setFilters(f => ({ ...f, start_date: yesterday, end_date: yesterday }))}
+            >
+              Yesterday
+            </button>
+            <button
+              className={isActive(weekStart, today) ? 'active' : ''}
+              onClick={() => setFilters(f => ({ ...f, start_date: weekStart, end_date: today }))}
+            >
+              This Week
+            </button>
+            <button
+              className={isActive(firstOfMonth, today) ? 'active' : ''}
+              onClick={() => setFilters(f => ({ ...f, start_date: firstOfMonth, end_date: today }))}
+            >
+              This Month
+            </button>
+            <button
+              className={isActive(lastMonthStart, lastMonthEnd) ? 'active' : ''}
+              onClick={() => setFilters(f => ({ ...f, start_date: lastMonthStart, end_date: lastMonthEnd }))}
+            >
+              Last Month
+            </button>
+            <button
+              className={isActive(getYearStart(), today) ? 'active' : ''}
+              onClick={() => setFilters(f => ({ ...f, start_date: getYearStart(), end_date: today }))}
+            >
+              This Year
+            </button>
+          </div>
+
+          <details className="filter-details" open={filtersOpen} onToggle={event => setFiltersOpen(event.currentTarget.open)}>
+            <summary>
+              Dates and filters
+              {activeFilterCount > 0 && <span className="filter-details-count">{activeFilterCount} active</span>}
+              <svg className="filter-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
           <div className="filter-grid">
             <div className="form-group">
               <label>From Date</label>
@@ -313,8 +359,12 @@ export default function AdminDashboard({ toggleTheme, theme }) {
             <MultiSelectFilter label="Drivers" value={filters.driver_id} options={drivers.map(driver => ({ value: driver.id, label: `${driver.name}${driver.is_active ? '' : ' (removed)'}` }))} onChange={value => setFilters(previous => ({ ...previous, driver_id: value }))} onAdd={() => { setDriverToEdit(null); setShowDriverModal(true); }} />
             <MultiSelectFilter label="Vehicles" value={filters.vehicle_number} options={vehicles.map(vehicle => ({ value: vehicle.number, label: `${vehicle.number} (${vehicle.seater} seater)` }))} onChange={value => setFilters(previous => ({ ...previous, vehicle_number: value }))} onAdd={() => setShowVehicleModal(true)} />
             <MultiSelectFilter label="Companies" value={filters.company_id} options={companies.map(company => ({ value: company.id, label: company.name }))} onChange={value => setFilters(previous => ({ ...previous, company_id: value }))} onAdd={() => setShowCompanyModal(true)} />
+          </div>
+          {activeFilterCount > 0 && <button className="text-action" onClick={() => setFilters(previous => ({ ...previous, driver_id: [], company_id: [], vehicle_number: [] }))}>Clear selections</button>}
+          </details>
+
             <div className="filter-actions">
-              <button className="btn-filter" onClick={() => { fetchAll(); fetchLookups(); }} disabled={loading}>Refresh</button>
+              <button className="btn-filter tint tint-indigo" onClick={() => { fetchAll(); fetchLookups(); }} disabled={loading}>Refresh</button>
               <button className="btn-export" onClick={handleExport} disabled={exporting || exportingPdf}>
                 {exporting ? 'Exporting...' : 'Export Excel'}
               </button>
@@ -322,46 +372,6 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 {exportingPdf ? 'Generating...' : 'Export PDF'}
               </button>
             </div>
-          </div>
-
-          <div className="quick-ranges">
-            <button 
-              className={isActive(today, today) ? 'active' : ''} 
-              onClick={() => setFilters(f => ({ ...f, start_date: today, end_date: today }))}
-            >
-              Today
-            </button>
-            <button 
-              className={isActive(yesterday, yesterday) ? 'active' : ''} 
-              onClick={() => setFilters(f => ({ ...f, start_date: yesterday, end_date: yesterday }))}
-            >
-              Yesterday
-            </button>
-            <button 
-              className={isActive(weekStart, today) ? 'active' : ''} 
-              onClick={() => setFilters(f => ({ ...f, start_date: weekStart, end_date: today }))}
-            >
-              This Week
-            </button>
-            <button 
-              className={isActive(firstOfMonth, today) ? 'active' : ''} 
-              onClick={() => setFilters(f => ({ ...f, start_date: firstOfMonth, end_date: today }))}
-            >
-              This Month
-            </button>
-            <button 
-              className={isActive(lastMonthStart, lastMonthEnd) ? 'active' : ''} 
-              onClick={() => setFilters(f => ({ ...f, start_date: lastMonthStart, end_date: lastMonthEnd }))}
-            >
-              Last Month
-            </button>
-            <button 
-              className={isActive(getYearStart(), today) ? 'active' : ''} 
-              onClick={() => setFilters(f => ({ ...f, start_date: getYearStart(), end_date: today }))}
-            >
-              This Year
-            </button>
-          </div>
         </div>
 
         {stats && (
@@ -430,13 +440,13 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 </div>
                 <div className="layer-content">
                   <div className="layer-value teal">
-                    Rs {Number(stats.total_advance_paid || 0).toLocaleString('en-IN')}
+                    ₹{Number(stats.total_advance_paid || 0).toLocaleString('en-IN')}
                   </div>
                   <div className="layer-label">Advance Salary Paid</div>
                   {stats.advance_paid_drivers?.length > 0 && (
                     <div className="layer-subtitle">({stats.advance_paid_drivers.join(', ')})</div>
                   )}
-                  <div className="clickable-hint">Click to view breakdown</div>
+                  <div className="clickable-hint">View breakdown</div>
                 </div>
               </div>
 
@@ -451,10 +461,10 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                 </div>
                 <div className="layer-content">
                   <div className="layer-value amber">
-                    Rs {Number(stats.total_charging_cost || 0).toLocaleString('en-IN')}
+                    ₹{Number(stats.total_charging_cost || 0).toLocaleString('en-IN')}
                   </div>
                   <div className="layer-label">Total Charging Cost</div>
-                  <div className="clickable-hint">Click to view breakdown</div>
+                  <div className="clickable-hint">View breakdown</div>
                 </div>
               </div>
 
@@ -468,9 +478,9 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                   <BanknoteIcon />
                 </div>
                 <div className="layer-content">
-                  <div className="layer-value green">View Statement</div>
-                  <div className="layer-label">Driver Salaries (Previous &amp; Current Cycle)</div>
-                  <div className="clickable-hint">Click to view breakdown &amp; export PDF</div>
+                  <div className="layer-value layer-value-link">Driver salaries</div>
+                  <div className="layer-label">Previous and current cycle</div>
+                  <div className="clickable-hint">View statement</div>
                 </div>
               </div>
             </div>
@@ -485,15 +495,15 @@ export default function AdminDashboard({ toggleTheme, theme }) {
               <h3>Daily Ride Manifest</h3>
               <span className="manifest-range">{formatDate(filters.start_date)} to {formatDate(filters.end_date)}</span>
             </div>
-            <span className="table-count">{reports.length} driver days</span>
+            <span className="table-count">{reports.length} driver {reports.length === 1 ? 'day' : 'days'}</span>
           </div>
 
-          {loading ? (
+          {loading && reports.length === 0 ? (
             <div className="loading-state">Loading...</div>
           ) : reports.length === 0 ? (
             <div className="empty-state">No records found for selected filters.</div>
           ) : (
-            <div className="manifest-days">
+            <div className={`manifest-days${loading ? ' is-refreshing' : ''}`} aria-busy={loading}>
               {groupedReports.map(day => {
                 const isExpanded = expandedDates.has(day.date);
                 return (
@@ -507,9 +517,8 @@ export default function AdminDashboard({ toggleTheme, theme }) {
                     </button>
                     {isExpanded && (
                       <div className="manifest-content">
-                        <div className="manifest-note">NOTE</div>
                         {day.rows.map(row => (
-                          <DriverManifest key={`${row.driver_id}-${row.date}`} row={row} onEditRide={editRide} onAddRide={() => addRide(row.driver_id)} />
+                          <DriverManifest key={`${row.driver_id}-${row.date}`} row={row} onEditRide={editRide} onDeleteRide={setDeletingRide} onAddRide={addRide} />
                         ))}
                       </div>
                     )}
@@ -566,6 +575,7 @@ export default function AdminDashboard({ toggleTheme, theme }) {
       )}
 
       {showRideModal && <RideModal ride={editingRide} initialDriver={initialDriver} drivers={drivers} companies={companies} vehicles={vehicles} onClose={() => setShowRideModal(false)} onSuccess={() => { setShowRideModal(false); changed('Ride saved. Attendance and earnings updated.'); }} />}
+      {deletingRide && <DeleteRideModal ride={deletingRide} onClose={() => setDeletingRide(null)} onSuccess={() => { setDeletingRide(null); changed('Ride deleted. Attendance and earnings updated.'); }} />}
       {showAddChargeModal && <ChargeModal charge={editingCharge} drivers={drivers} vehicles={vehicles} onClose={() => setShowAddChargeModal(false)} onSuccess={() => { setShowAddChargeModal(false); changed('Charging details saved.'); }} />}
       {showRecordAdvance && <AdvanceModal drivers={drivers} onClose={() => setShowRecordAdvance(false)} onSuccess={() => { setShowRecordAdvance(false); changed('Salary advance recorded.'); }} />}
       {showDriverModal && <DriverManagement initialDriver={driverToEdit} drivers={drivers} vehicles={vehicles} onClose={() => setShowDriverModal(false)} onSuccess={async () => { await fetchLookups(); changed('Driver records updated.'); }} />}
@@ -727,14 +737,13 @@ function AddVehicleModal({ onClose, onSuccess }) {
   );
 }
 
-function DriverManifest({ row, onEditRide, onAddRide }) {
-  const rideRows = row.rides?.length ? row.rides : Array.from({ length: Math.max(row.total_rides, 1) }, () => null);
-  const displayRows = padRows(rideRows, Math.max(7, rideRows.length));
+// Memoised: opening a modal or showing a notice must not re-render every expanded day.
+const DriverManifest = memo(function DriverManifest({ row, onEditRide, onDeleteRide, onAddRide }) {
+  const rideRows = row.rides || [];
 
   // Build company summary
   const companySummary = {};
-  (row.rides || []).forEach(ride => {
-    if (!ride) return;
+  rideRows.forEach(ride => {
     const name = ride.company_name || 'Other';
     if (!companySummary[name]) companySummary[name] = { count: 0, km: 0 };
     companySummary[name].count += 1;
@@ -747,8 +756,11 @@ function DriverManifest({ row, onEditRide, onAddRide }) {
   return (
     <div className="driver-manifest">
       <div className="driver-manifest-title">
-        <span>Driver Name: {row.driver_name}</span><button className="text-action" onClick={onAddRide}>+ Add ride</button>
-        <span className={`attendance-badge ${statusClass}`}>{statusLabel}</span>
+        <span>{row.driver_name}</span>
+        <div className="manifest-card-actions">
+          {row.status && <span className={`attendance-badge ${statusClass}`}>{statusLabel}</span>}
+          <button className="text-action" onClick={() => onAddRide(row.driver_id)}>+ Add ride</button>
+        </div>
       </div>
 
       <div className="manifest-table-wrap">
@@ -765,23 +777,24 @@ function DriverManifest({ row, onEditRide, onAddRide }) {
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((ride, index) => (
-              <tr key={ride?.id || `blank-${index}`}>
+            {rideRows.length === 0 && <tr><td colSpan={8}>No ride entries for this day.</td></tr>}
+            {rideRows.map((ride, index) => (
+              <tr key={ride.id}>
                 <td>{index + 1}</td>
-                <td>{ride?.company_name || ''}</td>
-                <td>{ride?.trip_type || ''}</td>
-                <td>{ride?.ride_time ? formatTime(ride.ride_time) : ''}</td>
+                <td>{ride.company_name || ''}</td>
+                <td>{ride.trip_type || ''}</td>
+                <td>{ride.ride_time ? formatTime(ride.ride_time) : ''}</td>
                 <td>
                   <div>{formatRoute(ride)}</div>
-                  {ride?.notes && (
+                  {ride.notes && (
                     <div className="ride-note-admin">
                       <span className="note-dot-admin" aria-hidden="true" />
                       {ride.notes}
                     </div>
                   )}
                 </td>
-                <td>{ride?.total_km ? Number(ride.total_km).toLocaleString('en-IN') : ''}</td>
-                <td>{ride?.vehicle_number || ''}</td><td>{ride && <button className="text-action" aria-label={`Edit ride ${index + 1} for ${row.driver_name}`} onClick={() => onEditRide(ride)}>Edit</button>}</td>
+                <td>{ride.total_km ? Number(ride.total_km).toLocaleString('en-IN') : ''}</td>
+                <td>{ride.vehicle_number || ''}</td><td><div className="manifest-card-actions"><button className="text-action" aria-label={`Edit ride ${index + 1} for ${row.driver_name}`} onClick={() => onEditRide(ride)}>Edit</button><button className="text-action danger-text" aria-label={`Delete ride ${index + 1} for ${row.driver_name}`} onClick={() => onDeleteRide(ride)}>Delete</button></div></td>
               </tr>
             ))}
           </tbody>
@@ -789,13 +802,17 @@ function DriverManifest({ row, onEditRide, onAddRide }) {
       </div>
 
       <div className="manifest-mobile-list">
-        {rideRows.filter(Boolean).length === 0 ? (
+        {rideRows.length === 0 ? (
           <div className="manifest-ride-card muted">No ride entries for this day.</div>
-        ) : rideRows.filter(Boolean).map((ride, index) => (
+        ) : rideRows.map((ride, index) => (
           <div className="manifest-ride-card" key={ride.id}>
             <div className="manifest-card-top">
-              <strong>#{index + 1} {ride.company_name || 'Client'}</strong><button className="text-action" aria-label={`Edit ride ${index + 1} for ${row.driver_name}`} onClick={() => onEditRide(ride)}>Edit</button>
-              <span className="trip-badge">{ride.trip_type || 'P'}</span>
+              <strong>#{index + 1} {ride.company_name || 'Client'}</strong>
+              <div className="manifest-card-actions">
+                <button className="text-action" aria-label={`Edit ride ${index + 1} for ${row.driver_name}`} onClick={() => onEditRide(ride)}>Edit</button>
+                <button className="text-action danger-text" aria-label={`Delete ride ${index + 1} for ${row.driver_name}`} onClick={() => onDeleteRide(ride)}>Delete</button>
+                <span className="trip-badge">{ride.trip_type || 'P'}</span>
+              </div>
             </div>
             <div className="manifest-route">{formatRoute(ride)}</div>
             {ride.notes && (
@@ -828,7 +845,7 @@ function DriverManifest({ row, onEditRide, onAddRide }) {
       )}
     </div>
   );
-}
+});
 
 function groupReportsByDate(rows) {
   const map = new Map();
@@ -839,12 +856,7 @@ function groupReportsByDate(rows) {
   return Array.from(map, ([date, dayRows]) => ({ date, rows: dayRows }));
 }
 
-function padRows(rows, count) {
-  return [...rows, ...Array.from({ length: Math.max(0, count - rows.length) }, () => null)];
-}
-
 function formatRoute(ride) {
-  if (!ride) return '';
   return ride.route || [ride.pickup, ride.drop].filter(Boolean).join(' to ');
 }
 
@@ -1217,7 +1229,7 @@ function formatSalaryDate(value) {
 // totals and the PDF can never disagree.
 // ─────────────────────────────────────────────────────────────────────────────
 function rs(value) {
-  return `Rs ${Number(value || 0).toLocaleString('en-IN')}`;
+  return `₹${Number(value || 0).toLocaleString('en-IN')}`;
 }
 
 function DriverSalaryPanel({ onClose }) {

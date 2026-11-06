@@ -104,8 +104,6 @@
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .form-group input,
@@ -250,7 +248,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--border);
-  transition: all 0.3s ease;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .fp-step-dot.active {
@@ -282,8 +280,6 @@
   font-weight: 700;
   font-family: var(--font-mono);
   background: rgba(148, 163, 184, 0.08);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
@@ -375,76 +371,10 @@
   cursor: not-allowed;
 }
 
-/* ================================
-   Conditional Phone/Email Styles
-   ================================ */
-
-.contact-fields-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: rgba(16,185,129,0.03);
-}
-
-.contact-hint,
-.contact-hint-inline {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-}
-
-.contact-hint-inline {
-  padding: 0.5rem 0.75rem;
-  background: rgba(16,185,129,0.06);
-  border-radius: var(--radius-sm);
-  border: 1px dashed rgba(16,185,129,0.2);
-}
-
-.hint-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(16,185,129,0.15);
-  color: var(--accent);
-  font-size: 0.7rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
 .required-dot {
   color: var(--accent);
   font-weight: 700;
   margin-left: 0.2rem;
-}
-
-.or-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.or-divider::before,
-.or-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.field-filled {
-  border-color: rgba(16,185,129,0.4) !important;
 }
 
 /* ── Responsive: Tablets ── */
@@ -489,9 +419,7 @@
     gap: 0.35rem;
   }
 
-  .contact-fields-group {
-    padding: 0.75rem;
-  }
+  
 }
 
 /* ── Responsive: Very small phones (iPhone SE, Galaxy S5, etc.) ── */

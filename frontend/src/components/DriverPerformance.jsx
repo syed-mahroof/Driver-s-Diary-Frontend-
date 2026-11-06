@@ -10,7 +10,7 @@ export default function DriverPerformance({ data, loading, onAddRide, onEditDriv
   const id = useId();
   return <section className="performance-panel" aria-labelledby={`${id}-heading`} aria-busy={loading}>
     <div className="performance-heading">
-      <div><span className="section-eyebrow">Fleet insights</span><h2 id={`${id}-heading`}>Driver performance</h2></div>
+      <h2 id={`${id}-heading`}>Driver performance</h2>
       <button type="button" className="performance-toggle" disabled={!data} aria-expanded={expanded} aria-controls={`${id}-details`} onClick={() => setExpanded(value => !value)}>
         {expanded ? 'Collapse' : 'Explore'}<span aria-hidden="true">{expanded ? '−' : '+'}</span>
       </button>
@@ -23,7 +23,7 @@ export default function DriverPerformance({ data, loading, onAddRide, onEditDriv
         <Metric label="Distance logged" value={`${number(data.summary.total_km)} km`} />
         <Metric label="Charging cost" value={money(data.summary.charging_cost)} />
       </div>
-      <p className="performance-status">{data.summary.trips ? `${data.summary.active_drivers} drivers with trips` : 'No trips in this period.'}</p>
+      <p className="performance-status">{data.summary.trips ? `${data.summary.active_drivers} ${data.summary.active_drivers === 1 ? 'driver' : 'drivers'} with trips` : 'No trips in this period.'}</p>
     </> : <p className="performance-status" role="status">{loading ? 'Loading performance…' : 'Performance unavailable. Refresh to try again.'}</p>}
     <div id={`${id}-details`} hidden={!expanded}>
       {expanded && data && <PerformanceExplorer data={data} onAddRide={onAddRide} onEditDriver={onEditDriver} />}
@@ -101,7 +101,7 @@ export function PerformanceCharts({ data }) {
 }
 
 function DriverDetail({ driver, data, onAddRide, onEditDriver }) {
-  return <div className="driver-performance-detail"><div className="section-heading"><div><h3>{driver.driver_name}</h3><p>{driver.active_days} active days · Last trip: {driver.last_ride ? dateLabel(driver.last_ride) : 'No trips in selected period'}</p></div><div className="row-actions">{driver.is_active && <button type="button" className="btn-submit" onClick={() => onAddRide(driver.driver_id)}>+ Add ride</button>}<button type="button" className="btn-cancel" onClick={() => onEditDriver(driver.driver_id)}>Manage driver</button></div></div>
+  return <div className="driver-performance-detail"><div className="section-heading"><div><h3>{driver.driver_name}</h3><p>{driver.active_days} active days · Last trip: {driver.last_ride ? dateLabel(driver.last_ride) : 'No trips in selected period'}</p></div><div className="row-actions">{driver.is_active && <button type="button" className="btn-submit" onClick={() => onAddRide(driver.driver_id)}>+ Add ride</button>}<button type="button" className="btn-cancel tint tint-violet" onClick={() => onEditDriver(driver.driver_id)}>Manage driver</button></div></div>
     <div className="performance-metrics"><Metric label="Trips / active day" value={number(driver.avg_trips_per_active_day)} detail={`${driver.pickups} pickups · ${driver.drops} drops`} /><Metric label="Ride earnings" value={money(driver.ride_earnings)} detail="Selected rides · before cycle incentive" /><Metric label="Charging cost" value={money(driver.charging_cost)} detail="Driver / vehicle scope" /><Metric label="Advance paid" value={money(driver.advance_paid)} detail="Selected payment dates" /></div>
     <div className="attendance-summary">{['Full', 'Half', 'Leave', 'Holiday'].map(status => <span key={status}>{status}: <strong>{driver.attendance[status] || 0}</strong></span>)}</div>
     <div className="cycle-summary"><h4>Current salary cycle · {dateLabel(data.cycle_start)} – {dateLabel(data.cycle_end)}</h4><p>All rides for this driver in this cycle. Company and vehicle filters do not change salary.</p><div className="cycle-target"><span>Salary target</span><strong>{number(driver.target_progress)}%</strong></div><div className="mini-progress"><span style={{ width: `${Math.min(100, driver.target_progress)}%` }} /></div><dl><div><dt>Gross earnings</dt><dd>{money(driver.current_cycle.gross_earnings)}</dd></div><div><dt>Paid advances</dt><dd>{money(driver.current_cycle.advance_paid)}</dd></div><div><dt>Net payable</dt><dd>{money(driver.current_cycle.net_payable)}</dd></div><div><dt>Incentive</dt><dd>{money(driver.current_cycle.incentive_earnings)}</dd></div></dl></div>

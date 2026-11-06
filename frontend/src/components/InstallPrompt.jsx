@@ -15,9 +15,7 @@ export function InstallPrompt() {
   const [dismissed, setDismissed] = useState(
     localStorage.getItem('install_prompt_dismissed') === 'true'
   );
-  const [installed, setInstalled] = useState(
-    window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone
-  );
+  const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event) => {
@@ -40,7 +38,7 @@ export function InstallPrompt() {
 
   const handleInstall = async () => {
     if (!installEvent) {
-      if (isIos) setShowIosHint(true);
+      if (isIos()) setShowIosHint(true);
       return;
     }
     installEvent.prompt();
@@ -62,7 +60,7 @@ export function InstallPrompt() {
         <div className="install-ios-hint" role="status">
           <div className="ios-hint-header">
             <strong>Install Driver's Diary</strong>
-            <button className="ios-hint-close" onClick={() => setShowIosHint(false)}>×</button>
+            <button className="ios-hint-close" aria-label="Close" onClick={() => setShowIosHint(false)}>×</button>
           </div>
           <div className="ios-hint-body">
             <div className="ios-step">

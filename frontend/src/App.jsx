@@ -5,22 +5,23 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { InstallPrompt } from './components/InstallPrompt';
-import SplashScreen from './components/SplashScreen';
 import './styles/global.css';
 
 const DriverDashboard = lazy(() => import('./pages/DriverDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
+// Inside <Suspense>, so this only fires once the first screen (and its lazy chunk) has really rendered.
+function AppReady() {
+  useEffect(() => { window.__hidePreloader?.(); }, []);
+  return null;
+}
+
 export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  // Only ever show the splash once per browser session. Without this, a PWA
-  // reload triggered by the app being backgrounded/foregrounded (or a service
-  // worker update) remounts <App/> and replays the splash mid-session, which
-  // reads as "it shows twice".
-  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('hg-splash-shown'));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f8fafc' : '#0f1117');
     localStorage.setItem('theme', theme);
   }, [theme]);
 
@@ -30,17 +31,9 @@ export default function App() {
 
   return (
     <AuthProvider>
-      {showSplash && (
-        <SplashScreen
-          onFinish={() => {
-            sessionStorage.setItem('hg-splash-shown', 'true');
-            setShowSplash(false);
-          }}
-        />
-      )}
       <BrowserRouter>
         <InstallPrompt />
-        <Suspense fallback={<div className="loading-state" role="status">Loading dashboard…</div>}><Routes>
+        <Suspense fallback={<div className="loading-state" role="status">Loading dashboard…</div>}><AppReady /><Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route

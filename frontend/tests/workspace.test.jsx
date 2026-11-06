@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../src/store/AuthContext';
 import AdminDashboard from '../src/pages/AdminDashboard';
 import DriverDashboard from '../src/pages/DriverDashboard';
+import Login from '../src/pages/Login';
 
 test('multi-selection serializes consistently for dashboard and exports', () => {
   assert.deepEqual(filterParams({ start_date: '2026-10-01', driver_id: ['1', '2'], company_id: ['3'], vehicle_number: ['0622', '0656'] }), { start_date: '2026-10-01', driver_id: '1,2', company_id: '3', vehicle_number: '0622,0656' });
@@ -99,6 +100,10 @@ function renderDashboard(Component, isAdmin) {
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: true } });
   return renderToStaticMarkup(<MemoryRouter><AuthProvider><Component theme="dark" toggleTheme={() => {}} /></AuthProvider></MemoryRouter>);
 }
+test('login page sends a signed-in user to their dashboard instead of the form', () => {
+  const html = renderDashboard(Login, false);
+  assert.doesNotMatch(html, /Sign In|Forgot Password/);
+});
 test('admin dashboard renders new entry points without browser effects', () => {
   const html = renderDashboard(AdminDashboard, true);
   for (const label of ['Fleet overview', '+ Add ride', '+ Add charge', '+ Record advance', 'Manage drivers']) assert.ok(html.includes(label), label);

@@ -9,7 +9,7 @@ let dbPromise = null;
 function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion, newVersion, transaction) {
+      upgrade(db, _oldVersion, _newVersion, transaction) {
         if (!db.objectStoreNames.contains(RIDES_STORE)) {
           const store = db.createObjectStore(RIDES_STORE, { keyPath: 'local_id' });
           store.createIndex('synced', 'synced');

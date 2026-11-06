@@ -74,6 +74,25 @@ export function RideModal({ ride, initialDriver, drivers, companies, vehicles, o
   </AdminModal>;
 }
 
+export function DeleteRideModal({ ride, onClose, onSuccess }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const remove = async () => {
+    setBusy(true); setError('');
+    try { await adminAPI.deleteRide(ride.id); onSuccess(); }
+    catch (err) { setError(errorMessage(err)); setBusy(false); }
+  };
+  const summary = [ride.driver_name, ride.company_name, ride.date, ride.route].filter(Boolean).join(' · ');
+  return <AdminModal title="Delete this ride?" onClose={onClose} busy={busy}>
+    <div className="modal-form delete-driver-confirm">
+      {error && <p className="error-banner" role="alert">{error}</p>}
+      <strong>{summary}</strong>
+      <p>The driver’s attendance and earnings will be recalculated. This cannot be undone.</p>
+      <div className="modal-actions"><button className="btn-cancel" disabled={busy} onClick={onClose}>Keep ride</button><button className="btn-danger" disabled={busy} onClick={remove}>{busy ? 'Deleting…' : 'Delete ride'}</button></div>
+    </div>
+  </AdminModal>;
+}
+
 export function ChargeModal({ charge, drivers, vehicles, onClose, onSuccess }) {
   const [form, setForm] = useState(() => ({ driver: charge?.driver || '', date: charge?.date || today(), app_used: charge?.app_used || '', time: charge?.time?.slice(0, 5) || new Date().toTimeString().slice(0, 5), place: charge?.place || '', vehicle_number: charge?.vehicle_number || '', charge_amount: charge?.charge_amount ?? '' }));
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');

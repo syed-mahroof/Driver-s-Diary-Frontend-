@@ -78,8 +78,14 @@ export function useSync(ownerId) {
   // Auto-sync every 30 seconds when online
   useEffect(() => {
     if (!isOnline) return;
-    const interval = setInterval(syncNow, 30000);
-    return () => clearInterval(interval);
+    // Save battery in the background, then catch up as soon as the app is reopened.
+    const interval = setInterval(() => { if (!document.hidden) syncNow(); }, 30000);
+    const onVisible = () => { if (!document.hidden) syncNow(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isOnline, syncNow]);
 
   return { isOnline, pendingCount, syncing, lastSynced, syncNow, refreshPendingCount };

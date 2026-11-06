@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { authAPI } from '../utils/api';
 import '../styles/Login.css';
@@ -7,8 +7,7 @@ import '../styles/Login.css';
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading, error } = useAuth();
-  const navigate = useNavigate();
+  const { user, login, loading, error } = useAuth();
 
   // Forgot password state
   const [showForgot, setShowForgot] = useState(false);
@@ -20,14 +19,12 @@ export default function Login() {
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState('');
   const [fpMessage, setFpMessage] = useState('');
-  const [fpContactType, setFpContactType] = useState('');
   const otpRefs = useRef([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const userData = await login(username, password);
-      navigate(userData.isAdmin ? '/admin' : '/driver');
+      await login(username, password); // the redirect below takes over once user is set
     } catch {}
   };
 
@@ -65,7 +62,6 @@ export default function Login() {
     try {
       const { data } = await authAPI.forgotPassword(fpContact.trim());
       setFpMessage(data.message);
-      setFpContactType(data.contact_type);
       setFpStep(2);
       // Focus first OTP input after render
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
@@ -163,6 +159,9 @@ export default function Login() {
       setFpLoading(false);
     }
   };
+
+  // Already signed in (e.g. opening the installed app, which also works offline): skip the form.
+  if (user) return <Navigate to={user.isAdmin ? '/admin' : '/driver'} replace />;
 
   // Forgot password flow UI
   if (showForgot) {
@@ -305,7 +304,7 @@ export default function Login() {
         <div className="login-logo">
           <img src="/logo.png" alt="Logo" className="logo-img" />
           <h1>Driver's Diary</h1>
-          <p className="header-subtext">By <span>HeadGreen!</span></p>
+          <p className="header-subtext">By <span>HeadGreen!<sup className="brand-tm">™</sup></span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

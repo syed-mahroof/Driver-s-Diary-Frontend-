@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Fonts load from index.html so they never block the first paint. */
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -28,6 +28,7 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --surface-header: rgba(15, 17, 23, 0.82);
   --font: 'Sora', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-brand: 'Montserrat', sans-serif;
@@ -52,6 +53,7 @@
   --border: rgba(0,0,0,0.12);
   --border-hover: rgba(0,0,0,0.2);
   --shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --surface-header: rgba(248, 250, 252, 0.85);
   color-scheme: light;
 }
 
@@ -62,6 +64,7 @@ html, body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
   transition: background-color 0.3s, color 0.3s;
   overflow-x: hidden;
 }
@@ -91,8 +94,6 @@ input, select, textarea, button {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -137,44 +138,51 @@ input, select, textarea, button {
   border-color: var(--accent);
 }
 
-.logout-btn {
-  font-size: 0.75rem;
-  min-height: 36px;
-  padding: 0.3rem 0.7rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.logout-btn:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
 a { color: inherit; text-decoration: none; }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .form-group input:focus-visible, .form-group select:focus-visible, .form-group textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button { touch-action: manipulation; }
+button { touch-action: manipulation; transition: background-color .15s, border-color .15s, color .15s, opacity .15s, transform .1s ease-out; }
+/* Feedback the moment a finger lands, not after it lifts. */
+button:active:not(:disabled) { transform: scale(.98); }
 button.btn-submit, button.btn-filter, button.btn-login { color: var(--on-accent); background-color: var(--accent); }
-button:disabled { cursor: wait; opacity: .6; }
+button:disabled { cursor: not-allowed; opacity: .6; }
 .modal-close, .notif-btn, .menu-btn { min-width: 44px; min-height: 44px; }
 .modal-card { max-height: calc(100dvh - 32px); overscroll-behavior: contain; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
-/* Scrollbar */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge legacy */
+/* Scrollbars stay visible for mouse users, who need them; touch devices overlay their own. */
+@media (pointer: coarse) {
+  * { scrollbar-width: none; }
+  *::-webkit-scrollbar { width: 0; height: 0; display: none; }
 }
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none; /* Chrome/Safari/Android */
+
+/* Tinted buttons: each action keeps one colour that says what it is.
+   Ride green, charge blue, advance teal, drivers and statistics violet, refresh indigo. */
+.tint-green  { --tint: 16 185 129;  --tint-text: #6ee7b7; }
+.tint-blue   { --tint: 59 130 246;  --tint-text: #93c5fd; }
+.tint-teal   { --tint: 20 184 166;  --tint-text: #5eead4; }
+.tint-violet { --tint: 139 92 246;  --tint-text: #c4b5fd; }
+.tint-indigo { --tint: 99 102 241;  --tint-text: #a5b4fc; }
+[data-theme="light"] .tint-green  { --tint-text: #047857; }
+[data-theme="light"] .tint-blue   { --tint-text: #1d4ed8; }
+[data-theme="light"] .tint-teal   { --tint-text: #0f766e; }
+[data-theme="light"] .tint-violet { --tint-text: #6d28d9; }
+[data-theme="light"] .tint-indigo { --tint-text: #4338ca; }
+button.tint.tint { background: rgb(var(--tint) / .12); border: 1px solid rgb(var(--tint) / .35); color: var(--tint-text); }
+button.tint.tint:hover:not(:disabled) { background: rgb(var(--tint) / .2); }
+button.tint svg { color: currentColor; }
+
+/* Modals stay clean everywhere: they still scroll by wheel, touch and keyboard, just without the bar. */
+.modal-overlay, .modal-overlay *, .admin-dialog, .admin-dialog * { scrollbar-width: none; }
+.modal-overlay::-webkit-scrollbar, .modal-overlay *::-webkit-scrollbar,
+.admin-dialog::-webkit-scrollbar, .admin-dialog *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+@media (prefers-reduced-transparency: reduce) {
+  :root { --surface-header: #0f1117; }
+  [data-theme="light"] { --surface-header: #f8fafc; }
 }
 
 /* Spinner */
@@ -182,8 +190,8 @@ button:disabled { cursor: wait; opacity: .6; }
   display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -229,7 +237,7 @@ button:disabled { cursor: wait; opacity: .6; }
 .install-mini-logo {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   object-fit: cover;
 }
 
@@ -359,7 +367,6 @@ button:disabled { cursor: wait; opacity: .6; }
   }
 }
 
-
 /* Dropdown Menu (Shared) */
 .menu-container {
   position: relative;
@@ -377,7 +384,7 @@ button:disabled { cursor: wait; opacity: .6; }
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   line-height: 1;
   min-width: 44px;
   min-height: 44px;
@@ -532,7 +539,7 @@ button:disabled { cursor: wait; opacity: .6; }
   justify-content: center;
   cursor: pointer;
   border-radius: calc(var(--radius-sm) - 4px);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   overflow: hidden;
 }
 
@@ -554,19 +561,14 @@ button:disabled { cursor: wait; opacity: .6; }
 
 .toggle-option.active {
   background: var(--accent);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .toggle-option.active span {
-  color: #000;
+  color: var(--on-accent);
 }
 
 .toggle-option:not(.active):hover {
   background: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="light"] .toggle-option.active {
-  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
 }
 
 [data-theme="light"] .toggle-option:not(.active):hover {

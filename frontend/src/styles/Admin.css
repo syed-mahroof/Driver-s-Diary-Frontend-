@@ -9,17 +9,13 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 1rem 1.25rem;
-  background: rgba(148, 163, 184, 0.10);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background: var(--surface-header);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-[data-theme="light"] .admin-header {
-  border-bottom-color: rgba(15, 23, 42, 0.08);
 }
 
 .admin-header .header-left {
@@ -68,7 +64,7 @@
 .manifest-section {
   background: linear-gradient(155deg, var(--bg-card2), var(--bg-card));
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -146,16 +142,17 @@
   border: none;
 }
 
+/* Each export takes its file type's familiar colour: Excel green, PDF red. */
 .btn-export {
   background: rgba(16,185,129,0.12);
   color: #6ee7b7;
-  border: 1px solid rgba(16,185,129,0.3);
+  border: 1px solid rgba(16,185,129,0.35);
 }
 
 .btn-export-pdf {
-  background: rgba(59,130,246,0.12);
-  color: #93c5fd;
-  border: 1px solid rgba(59,130,246,0.35);
+  background: rgba(239,68,68,0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.35);
 }
 
 .btn-export:disabled,
@@ -174,14 +171,14 @@
 }
 
 .quick-ranges button {
-  font-size: 0.62rem;
+  font-size: .7rem;
   padding: 0.25rem 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: 999px; /* Oval/Pill shape */
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -236,12 +233,12 @@
 .stats-layer {
   background: linear-gradient(155deg, var(--bg-card2), var(--bg-card));
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .stats-layer:hover {
@@ -282,7 +279,7 @@
 .layer-icon-box {
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -309,8 +306,8 @@
 }
 
 .layer-value {
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-size: 1.6rem;
+  font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.01em;
 }
@@ -329,8 +326,8 @@
 }
 
 .layer-large-value {
-  font-size: 2.5rem;
-  font-weight: 900;
+  font-size: 2.25rem;
+  font-weight: 700;
   line-height: 0.9;
   letter-spacing: -0.02em;
 }
@@ -359,7 +356,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-primary);
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .company-stat-chip:hover {
@@ -376,7 +373,7 @@
   color: #000;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: .7rem;
   font-weight: 800;
 }
 
@@ -455,8 +452,6 @@
 
 /* End of Admin.css overview */
 
-
-
 .table-header {
   display: flex;
   align-items: center;
@@ -504,11 +499,11 @@
 .manifest-day {
   background: var(--bg-card2);
   color: var(--text-primary);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: none;
   margin-bottom: 1rem;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .manifest-day.expanded {
@@ -558,7 +553,7 @@
   color: var(--text-secondary);
   font-size: 1.25rem;
   font-weight: 700;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .manifest-day.expanded .expand-icon {
@@ -577,21 +572,11 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.manifest-note {
-  margin: 0 0 1.5rem;
-  color: var(--text-secondary);
-  font-style: italic;
-  font-weight: 700;
-  text-decoration: underline;
-  font-size: 0.9rem;
-}
-
-
 .driver-manifest {
   margin: 0 0 1.5rem;
   padding: 1rem;
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
 
@@ -639,11 +624,10 @@
   color: #94a3b8;
 }
 
-
 .manifest-table-wrap {
   overflow-x: auto;
-  border: 2px solid var(--accent-blue);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .manifest-table {
@@ -692,7 +676,7 @@
   background: var(--bg-card2);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent-blue);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
@@ -773,7 +757,7 @@
 .company-chip .chip-count {
   background: var(--accent);
   color: #000;
-  font-size: 0.65rem;
+  font-size: .7rem;
   font-weight: 800;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
@@ -782,7 +766,7 @@
 }
 
 .company-chip .chip-km {
-  font-size: 0.65rem;
+  font-size: .7rem;
   color: var(--accent-blue);
   font-weight: 700;
 }
@@ -916,10 +900,7 @@
     margin-top: 0.35rem;
   }
 
-  .overview-stats-card {
-    border-radius: 14px;
-    margin-bottom: 1.5rem;
-  }
+  
 
   .stats-header {
     padding: 1rem 1.25rem;
@@ -991,12 +972,10 @@
     padding: 0.6rem;
   }
 
-  .metric-card.teal {
-    grid-column: span 2;
-  }
+  
 
   .header-badge {
-    font-size: 0.6rem;
+    font-size: .7rem;
     padding: 0.15rem 0.45rem;
   }
 }
@@ -1012,7 +991,7 @@
   }
 
   .header-badge {
-    font-size: 0.6rem;
+    font-size: .7rem;
     padding: 0.15rem 0.4rem;
     margin-left: 0.25rem;
   }
@@ -1032,28 +1011,15 @@
     padding-inline: 0.35rem;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  
 
-  .metric-card {
-    padding: 1rem 0.75rem;
-    gap: 0.75rem;
-    flex-direction: row;
-    align-items: center;
-  }
+  
 
-  .metric-card.teal {
-    grid-column: span 2;
-  }
+  
 
-  .metric-value {
-    font-size: 1.3rem;
-  }
+  
 
-  .metric-label {
-    font-size: 0.75rem;
-  }
+  
 
   .manifest-date {
     padding: 0.75rem;
@@ -1068,33 +1034,11 @@
   }
 }
 
-/* Theme Switcher */
-.theme-toggle {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--text-primary);
-  font-size: 1.2rem;
-  transition: all 0.2s;
-}
-
-.theme-toggle:hover {
-  background: var(--bg-card2);
-  border-color: var(--accent);
-}
-
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1269,7 +1213,7 @@
   cursor: pointer;
   color: var(--text-primary);
   position: relative;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .notif-btn:hover {
@@ -1283,7 +1227,7 @@
   right: -4px;
   background: #ef4444;
   color: #fff;
-  font-size: 0.65rem;
+  font-size: .7rem;
   font-weight: 800;
   min-width: 18px;
   height: 18px;
@@ -1364,9 +1308,9 @@
 .advance-card {
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 1rem 1.25rem;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   border-left: 4px solid transparent;
 }
 
@@ -1432,7 +1376,7 @@
   font-weight: 700;
   font-size: 0.82rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .btn-paid:hover {
@@ -1450,7 +1394,7 @@
   font-weight: 700;
   font-size: 0.82rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
 }
 
 .btn-reject:hover {
@@ -1557,7 +1501,7 @@
     flex: 0 1 auto; /* Don't force them to 50% width */
     text-align: center;
     padding: 0.35rem 0.75rem; /* Slightly larger for touch but still small */
-    font-size: 0.62rem;
+    font-size: .7rem;
   }
 }
 
@@ -1618,11 +1562,10 @@
 }
 
 .clickable-hint {
-  font-size: 0.72rem;
-  color: var(--accent-blue);
+  font-size: 0.75rem;
+  color: var(--accent);
   font-weight: 600;
-  margin-top: 0.15rem;
-  text-decoration: underline;
+  margin-top: 0.25rem;
 }
 
 /* ── Charging Modal & Panel ── */
@@ -1661,9 +1604,9 @@
   background: var(--bg-input);
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent-blue);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 1rem 1.25rem;
-  transition: all 0.2s;
+  transition: background-color .2s, border-color .2s, color .2s, opacity .2s, box-shadow .2s, transform .1s ease-out;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1792,13 +1735,13 @@
 .salary-summary-tile {
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.7rem 0.8rem;
   min-width: 0;
 }
 
 .salary-summary-tile-label {
-  font-size: 0.62rem;
+  font-size: .7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -1847,7 +1790,7 @@
 .salary-driver-card {
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 0.9rem 1rem 1rem;
 }
 
@@ -1866,7 +1809,7 @@
 }
 
 .salary-driver-rides {
-  font-size: 0.68rem;
+  font-size: .7rem;
   color: var(--text-muted);
 }
 
@@ -1878,7 +1821,7 @@
 
 .salary-driver-cycle {
   background: var(--bg-card2);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.55rem 0.65rem;
   min-width: 0;
 }
@@ -1889,7 +1832,7 @@
 
 .salary-driver-cycle-label {
   display: block;
-  font-size: 0.6rem;
+  font-size: .7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1955,7 +1898,7 @@
 [data-theme="light"] .charging-amount { color: #b45309; }
 [data-theme="light"] .btn-export { color: var(--accent-green); }
 [data-theme="light"] .btn-export-pdf,
-[data-theme="light"] .monthly-pdf-btn { color: var(--accent-blue); }
+[data-theme="light"] .monthly-pdf-btn { color: #b91c1c; }
 
 /* Same base #10b981/#ef4444/#94a3b8 dark-theme values used directly as text
    elsewhere would look inconsistent next to the darker/theme-aware shade
@@ -1968,5 +1911,4 @@
 [data-theme="light"] .btn-reject { color: var(--accent-red); }
 [data-theme="light"] .status-tag.paid { color: var(--accent-green); }
 [data-theme="light"] .status-tag.rejected { color: var(--accent-red); }
-
 

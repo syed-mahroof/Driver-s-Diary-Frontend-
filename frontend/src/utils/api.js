@@ -37,7 +37,9 @@ api.interceptors.response.use(
           const data = await refreshPromise;
           original.headers.Authorization = `Bearer ${data.access}`;
           return api(original);
-        } catch {
+        } catch (refreshError) {
+          // Only a rejected token ends the session; a network blip must not log a driver out.
+          if (!refreshError.response) return Promise.reject(error);
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('user');
@@ -72,17 +74,12 @@ export const driverAPI = {
   createCharge: (data) => api.post('/driver/charge/', data),
   syncRides: (rides) => api.post('/sync-rides/', { rides }),
   getCompanies: () => api.get('/companies/'),
-  exportDriverReport: (period) => api.get('/driver/export-excel/', {
-    params: { period },
-    responseType: 'blob',
-  }),
   getReportData: (period) => api.get('/driver/report-data/', {
     params: { period },
   }),
   getVehicles: () => api.get('/vehicles/'),
   updateDefaultVehicle: (data) => api.post('/driver/update-default-vehicle/', data),
   requestAdvanceSalary: (data) => api.post('/advance-salary/request/', data),
-  getAdvanceRequests: () => api.get('/advance-salary/'),
 };
 
 export const adminAPI = {
@@ -95,6 +92,7 @@ export const adminAPI = {
   deleteDriver: (id) => api.delete(`/admin/drivers/${id}/`),
   createRide: (data) => api.post('/admin/rides/create/', data),
   updateRide: (id, data) => api.patch(`/admin/rides/${id}/`, data),
+  deleteRide: (id) => api.delete(`/admin/rides/${id}/`),
   updateCharge: (id, data) => api.patch(`/admin/charge/${id}/`, data),
   createAdvance: (data) => api.post('/admin/advance-salary/create/', data),
   getCompanies: () => api.get('/companies/'),
